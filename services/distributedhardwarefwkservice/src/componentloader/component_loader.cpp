@@ -759,10 +759,13 @@ void ComponentLoader::RegisterAudioComponentIfNeeded(std::map<DHType, CompConfig
     auto spkIt = componentEnableMap_.find({DHType::AUDIO, "speaker"});
     bool speakerEnable = (spkIt == componentEnableMap_.end()) || IsSubtypeAnyRoleEnabled("speaker");
     if (micEnable || speakerEnable) {
-        dhtypeMap[DHType::AUDIO] = g_audioCompConfig;
-        CompVersion compVersion;
-        GetCompVersionFromComConfig(g_audioCompConfig, compVersion);
-        localDHVersion_.compVersions[DHType::AUDIO] = compVersion;
+        auto audioIt = dhtypeMap.find(DHType::AUDIO);
+        if (audioIt == dhtypeMap.end()) {
+            dhtypeMap[DHType::AUDIO] = g_audioCompConfig;
+            CompVersion compVersion;
+            GetCompVersionFromComConfig(g_audioCompConfig, compVersion);
+            localDHVersion_.compVersions[DHType::AUDIO] = compVersion;
+        }
     } else {
         dhtypeMap.erase(DHType::AUDIO);
         localDHVersion_.compVersions.erase(DHType::AUDIO);
