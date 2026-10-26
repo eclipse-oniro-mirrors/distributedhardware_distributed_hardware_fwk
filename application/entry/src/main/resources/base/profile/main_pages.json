@@ -1,7 +1,5 @@
 {
   "src": [
-    "pages/DHardwareUI",
-    "pages/MechControl",
-    "pages/TrackingLayout"
+    "pages/DHardwareUI"
   ]
 }
