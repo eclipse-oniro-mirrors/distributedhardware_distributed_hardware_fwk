@@ -56,16 +56,6 @@
         "name": "ohos.permission.CONNECT_MECHANIC_HARDWARE"
       }
     ],
-    "extensionAbilities": [
-      {
-        "name": "MechExtAbility",
-        "srcEntry": "./ets/mechextability/MechExtAbility.ets",
-        "description": "$string:MechExtAbility_desc",
-        "label": "$string:MechExtAbility_label",
-        "type": "sys/commonUI",
-        "exported": false
-      }
-    ],
     "metadata": [
       {
         "name": "action.settings.search.path",
