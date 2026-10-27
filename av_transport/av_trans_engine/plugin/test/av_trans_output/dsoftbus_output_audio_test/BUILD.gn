@@ -17,6 +17,13 @@ import("../../../../../distributed_av_transport.gni")
 ohos_unittest("DsoftbusOutputAudioPluginTest") {
   module_out_path = unittest_output_path
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_no_nvcall = true
+    debug = false
+  }
+
   include_dirs = [
     "${common_path}/include",
     "${dh_fwk_utils_path}/include",

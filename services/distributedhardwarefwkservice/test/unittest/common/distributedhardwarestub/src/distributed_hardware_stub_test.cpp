@@ -26,6 +26,8 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace DistributedHardware {
+MockDistributedHardwareStub::~MockDistributedHardwareStub() = default;
+
 void DistributedHardwareStubTest::SetUpTestCase(void) {}
 
 void DistributedHardwareStubTest::TearDownTestCase(void) {}

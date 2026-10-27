@@ -37,6 +37,7 @@ public:
 
 class MockDistributedHardwareStub : public DistributedHardwareStub {
 public:
+~MockDistributedHardwareStub() override;
 int32_t RegisterPublisherListener(const DHTopic topic, const sptr<IPublisherListener> listener)
 {
     (void)topic;
