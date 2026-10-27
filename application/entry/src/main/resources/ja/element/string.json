@@ -1,50 +1,50 @@
 {
   "string": [
     {
-      "name": "pause",
-      "value": "Sospendi",
+      "name": "DHTypeName_Camera",
+      "value": "カメラ",
       "attr": {
         "priority": "translate"
       }
     },
     {
-      "name": "DHTypeName_Camera",
-      "value": "fotocamera",
+      "name": "pause",
+      "value": "一時停止",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "connected_to",
-      "value": "Connesso a %1$s",
+      "value": "%1$sに接続されました",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "continue",
-      "value": "Riprendi",
+      "value": "再開",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "disconnect",
-      "value": "Disconnetti",
+      "value": "切断",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "stop_device",
-      "value": "Disconnetti per interrompere l'utilizzo della %1$s di questo dispositivo.",
+      "value": "このデバイスの%1$sの使用を停止するには、接続を切断してください。",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "DHTypeName_Mic",
-      "value": "microfono",
+      "value": "マイク",
       "attr": {
         "priority": "translate"
       }
