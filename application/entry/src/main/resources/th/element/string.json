@@ -1,50 +1,50 @@
 {
   "string": [
     {
-      "name": "DHTypeName_Camera",
-      "value": "камера",
+      "name": "pause",
+      "value": "หยุดชั่วคราว",
       "attr": {
         "priority": "translate"
       }
     },
     {
-      "name": "pause",
-      "value": "Приостановить",
+      "name": "DHTypeName_Camera",
+      "value": "กล้องถ่ายรูป",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "connected_to",
-      "value": "Подключено к %1$s",
+      "value": "เชื่อมต่อกับ %1$s แล้ว",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "continue",
-      "value": "Возобновить",
+      "value": "ดำเนินการต่อ",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "disconnect",
-      "value": "Отключить",
+      "value": "ยกเลิกการเชื่อมต่อ",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "stop_device",
-      "value": "Вы можете отключиться от этого устройства, чтобы прекратить использование его компонента (%1$s).",
+      "value": "ยกเลิกการเชื่อมต่อเพื่อหยุดใช้ %1$s ของอุปกรณ์",
       "attr": {
         "priority": "translate"
       }
     },
     {
       "name": "DHTypeName_Mic",
-      "value": "микрофон",
+      "value": "ไมโครโฟน",
       "attr": {
         "priority": "translate"
       }
