@@ -21,6 +21,7 @@ config("module_private_config") {
   include_dirs = [
     "include",
     "${common_path}/utils/include",
+    "${common_path}/log/include",
     "${services_path}/distributedhardwarefwkservice/include/ipc",
     "${services_path}/distributedhardwarefwkservice/include",
   ]
@@ -97,7 +98,10 @@ ohos_unittest("GetDhDescriptorsCallbackProxyTest") {
 ohos_unittest("AccessListenerStubTest") {
   module_out_path = module_out_path
 
-  sources = [ "src/access_listener_stub_test.cpp" ]
+  sources = [
+    "src/access_listener_stub_test.cpp",
+    "src/access_listener_stub_ext_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
