@@ -22,6 +22,7 @@ config("module_private_config") {
   include_dirs = [
     "${utils_path}/include",
     "${common_path}/utils/include",
+    "${common_path}/log/include",
   ]
 }
 
@@ -33,6 +34,7 @@ ohos_unittest("UtilsToolTest") {
     "${utils_path}/test/utilstool/utils_tool_test.cpp",
     "${utils_path}/test/utilstool/device_param_mgr_test.cpp",
     "${utils_path}/test/utilstool/mock_os_account_manager.cpp",
+    "${utils_path}/test/utilstool/dh_utils_coverage_test.cpp",
   ]
 
   configs = [ ":module_private_config" ]
@@ -48,6 +50,7 @@ ohos_unittest("UtilsToolTest") {
     "hilog:libhilog",
     "init:libbegetutil",
     "ipc:ipc_single",
+    "hisysevent:libhisysevent",
   ]
 
   cflags = [ "-Dprivate=public" ]
