@@ -68,11 +68,14 @@ public:
     void OnSuccess(const std::string &networkId, const std::vector<DHDescriptor> &descriptors,
         EnableStep enableStep) override
     {
-        (void)networkId; (void)descriptors; (void)enableStep;
+        (void)networkId;
+        (void)descriptors;
+        (void)enableStep;
     }
     void OnError(const std::string &networkId, int32_t error) override
     {
-        (void)networkId; (void)error;
+        (void)networkId;
+        (void)error;
     }
 };
 
@@ -746,7 +749,6 @@ HWTEST_F(ComponentManagerTestNew, DisableMetaSource_003, TestSize.Level1)
     EXPECT_EQ(ret, DH_FWK_SUCCESS);
     ComponentManager::GetInstance().dhSourceStatus_.clear();
 }
-
 
 
 HWTEST_F(ComponentManagerTestNew, RecoverAutoEnableSource_001, TestSize.Level0)
