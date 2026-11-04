@@ -727,6 +727,10 @@ bool ComponentManager::IsIdenticalAccount(const std::string &networkId)
 
 int32_t ComponentManager::InitAVSyncSharedMemory()
 {
+    std::lock_guard<std::mutex> lock(syncSharedMemMutex_);
+    if (syncSharedMem_ != nullptr) {
+        return DH_FWK_SUCCESS;
+    }
     uint32_t memLen = sizeof(SyncShareData);
     std::string memName = "AVSyncSharedMemory";
     syncSharedMem_ = OHOS::Ashmem::CreateAshmem(memName.c_str(), memLen);
@@ -767,11 +771,13 @@ int32_t ComponentManager::InitAVSyncSharedMemory()
 
 void ComponentManager::DeinitAVSyncSharedMemory()
 {
+    std::lock_guard<std::mutex> lock(syncSharedMemMutex_);
     if (syncSharedMem_ != nullptr) {
         syncSharedMem_->UnmapAshmem();
         syncSharedMem_->CloseAshmem();
         syncSharedMem_ = nullptr;
     }
+    syncShareData_.reset();
 }
 
 int32_t ComponentManager::GetDHIdByDHSubtype(const DHSubtype dhSubtype, std::string &networkId, std::string &dhId)

@@ -176,6 +176,15 @@ bool DistributedHardwareService::IsDepSAStart()
 void DistributedHardwareService::OnStop()
 {
     DHLOGI("DistributedHardwareService::OnStop ready to stop service.");
+    if (eventHandler_ != nullptr) {
+        eventHandler_->RemoveTask(INIT_TASK_ID);
+        eventHandler_->RemoveAllEvents();
+        auto runner = eventHandler_->GetEventRunner();
+        if (runner != nullptr) {
+            runner->Stop();
+        }
+        eventHandler_.reset();
+    }
     state_ = ServiceRunningState::STATE_NOT_START;
     registerToService_ = false;
     int pid = getpid();

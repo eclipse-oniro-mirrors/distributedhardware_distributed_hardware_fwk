@@ -51,7 +51,10 @@ AVReceiverEngineProvider::~AVReceiverEngineProvider()
     ownerName_ = "";
     sessionName_ = "";
     receiverEngineList_.clear();
-    providerCallback_ = nullptr;
+    {
+        std::lock_guard<std::mutex> cbLock(callbackMutex_);
+        providerCallback_ = nullptr;
+    }
 }
 
 std::shared_ptr<IAVReceiverEngine> AVReceiverEngineProvider::CreateAVReceiverEngine(const std::string &peerDevId)
@@ -85,13 +88,18 @@ int32_t AVReceiverEngineProvider::RegisterProviderCallback(
 
 void AVReceiverEngineProvider::OnChannelEvent(const AVTransEvent &event)
 {
-    if (providerCallback_ == nullptr) {
+    std::shared_ptr<IAVEngineProviderCallback> cb;
+    {
+        std::lock_guard<std::mutex> lock(callbackMutex_);
+        cb = providerCallback_;
+    }
+    if (cb == nullptr) {
         AVTRANS_LOGE("providerCallback_ is nullptr.");
         return;
     }
     if ((event.type == EventType::EVENT_CHANNEL_OPENED) || (event.type == EventType::EVENT_CHANNEL_CLOSED)) {
         AVTRANS_LOGI("on receiver channel event. event type:%{public}" PRId32, event.type);
-        providerCallback_->OnProviderEvent(event);
+        cb->OnProviderEvent(event);
     }
 }
 

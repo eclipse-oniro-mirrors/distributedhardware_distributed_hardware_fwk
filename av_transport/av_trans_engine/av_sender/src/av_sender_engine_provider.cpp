@@ -35,20 +35,23 @@ AVSenderEngineProvider::AVSenderEngineProvider(const std::string ownerName) : ow
 AVSenderEngineProvider::~AVSenderEngineProvider()
 {
     AVTRANS_LOGI("AVSenderEngineProvider dctor.");
-    std::lock_guard<std::mutex> lock(listMutex_);
-    for (auto &sender : senderEngineList_) {
-        if (sender == nullptr) {
-            continue;
+    {
+        std::lock_guard<std::mutex> lock(listMutex_);
+        for (auto &sender : senderEngineList_) {
+            if (sender == nullptr) {
+                continue;
+            }
+            sender->Release();
         }
-        sender->Release();
+        if (ownerName_ == OWNER_NAME_D_MIC || ownerName_ == OWNER_NAME_D_VIRMODEM_MIC) {
+            SoftbusChannelAdapter::GetInstance().RemoveChannelServer(TransName2PkgName(ownerName_), sessionName_);
+            SoftbusChannelAdapter::GetInstance().UnRegisterChannelListener(sessionName_, AV_TRANS_SPECIAL_DEVICE_ID);
+        }
+        ownerName_ = "";
+        sessionName_ = "";
+        senderEngineList_.clear();
     }
-    if (ownerName_ == OWNER_NAME_D_MIC || ownerName_ == OWNER_NAME_D_VIRMODEM_MIC) {
-        SoftbusChannelAdapter::GetInstance().RemoveChannelServer(TransName2PkgName(ownerName_), sessionName_);
-        SoftbusChannelAdapter::GetInstance().UnRegisterChannelListener(sessionName_, AV_TRANS_SPECIAL_DEVICE_ID);
-    }
-    ownerName_ = "";
-    sessionName_ = "";
-    senderEngineList_.clear();
+    std::lock_guard<std::mutex> cbLock(callbackMutex_);
     providerCallback_ = nullptr;
 }
 
@@ -82,13 +85,18 @@ int32_t AVSenderEngineProvider::RegisterProviderCallback(const std::shared_ptr<I
 
 void AVSenderEngineProvider::OnChannelEvent(const AVTransEvent &event)
 {
-    if (providerCallback_ == nullptr) {
+    std::shared_ptr<IAVEngineProviderCallback> cb;
+    {
+        std::lock_guard<std::mutex> lock(callbackMutex_);
+        cb = providerCallback_;
+    }
+    if (cb == nullptr) {
         AVTRANS_LOGE("providerCallback_ is nullptr");
         return;
     }
     if ((event.type == EventType::EVENT_CHANNEL_OPENED) || (event.type == EventType::EVENT_CHANNEL_CLOSED)) {
         AVTRANS_LOGI("on receiver channel event. event type:%{public}" PRId32, event.type);
-        providerCallback_->OnProviderEvent(event);
+        cb->OnProviderEvent(event);
     }
 }
 

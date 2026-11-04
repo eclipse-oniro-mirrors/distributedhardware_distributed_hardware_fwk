@@ -16,6 +16,10 @@
 #include "av_trans_control_center_test.h"
 #include "av_trans_errno.h"
 
+#include <set>
+#include <thread>
+#include <vector>
+
 using namespace testing::ext;
 namespace OHOS {
 namespace DistributedHardware {

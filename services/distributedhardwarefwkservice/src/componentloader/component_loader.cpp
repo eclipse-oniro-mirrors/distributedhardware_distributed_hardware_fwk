@@ -529,13 +529,22 @@ int32_t ComponentLoader::ReleaseHardwareHandler(const DHType dhType)
     if (!IsDHTypeHandlerLoaded(dhType)) {
         return ERR_DH_FWK_LOADER_HANDLER_UNLOAD;
     }
-    int32_t ret = ReleaseHandler(compHandlerMap_[dhType].hardwareHandler);
+    void *hardwareHandler = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(compHandlerMapMutex_);
+        auto it = compHandlerMap_.find(dhType);
+        if (it == compHandlerMap_.end()) {
+            return ERR_DH_FWK_TYPE_NOT_EXIST;
+        }
+        hardwareHandler = it->second.hardwareHandler;
+        it->second.hardwareHandler = nullptr;
+    }
+    int32_t ret = ReleaseHandler(hardwareHandler);
     if (ret) {
         DHLOGE("fail, dhType: %{public}#X", dhType);
         HiSysEventWriteReleaseMsg(DHFWK_RELEASE_FAIL, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
             dhType, ret, "dhfwk release hardware handler failed.");
     }
-    compHandlerMap_[dhType].hardwareHandler = nullptr;
     return ret;
 }
 
@@ -547,13 +556,22 @@ int32_t ComponentLoader::ReleaseSource(const DHType dhType)
     if (!IsDHTypeSourceLoaded(dhType)) {
         return ERR_DH_FWK_LOADER_SOURCE_UNLOAD;
     }
-    int32_t ret = ReleaseHandler(compHandlerMap_[dhType].sourceHandler);
+    void *sourceHandler = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(compHandlerMapMutex_);
+        auto it = compHandlerMap_.find(dhType);
+        if (it == compHandlerMap_.end()) {
+            return ERR_DH_FWK_TYPE_NOT_EXIST;
+        }
+        sourceHandler = it->second.sourceHandler;
+        it->second.sourceHandler = nullptr;
+    }
+    int32_t ret = ReleaseHandler(sourceHandler);
     if (ret) {
         DHLOGE("fail, dhType: %{public}#X", dhType);
         HiSysEventWriteReleaseMsg(DHFWK_RELEASE_FAIL, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
             dhType, ret, "dhfwk release source failed.");
     }
-    compHandlerMap_[dhType].sourceHandler = nullptr;
     return ret;
 }
 
@@ -565,13 +583,22 @@ int32_t ComponentLoader::ReleaseSink(const DHType dhType)
     if (!IsDHTypeSinkLoaded(dhType)) {
         return ERR_DH_FWK_LOADER_SINK_UNLOAD;
     }
-    int32_t ret = ReleaseHandler(compHandlerMap_[dhType].sinkHandler);
+    void *sinkHandler = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(compHandlerMapMutex_);
+        auto it = compHandlerMap_.find(dhType);
+        if (it == compHandlerMap_.end()) {
+            return ERR_DH_FWK_TYPE_NOT_EXIST;
+        }
+        sinkHandler = it->second.sinkHandler;
+        it->second.sinkHandler = nullptr;
+    }
+    int32_t ret = ReleaseHandler(sinkHandler);
     if (ret) {
         DHLOGE("fail, dhType: %{public}#X", dhType);
         HiSysEventWriteReleaseMsg(DHFWK_RELEASE_FAIL, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
             dhType, ret, "dhfwk release sink failed.");
     }
-    compHandlerMap_[dhType].sinkHandler = nullptr;
     return ret;
 }
 
@@ -677,6 +704,7 @@ DHType ComponentLoader::GetDHTypeBySaId(const int32_t saId)
 
 std::map<std::string, bool> ComponentLoader::GetCompResourceDesc()
 {
+    std::lock_guard<std::mutex> lock(compHandlerMapMutex_);
     return resDescMap_;
 }
 
