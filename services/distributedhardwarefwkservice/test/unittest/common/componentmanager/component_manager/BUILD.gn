@@ -170,10 +170,74 @@ ohos_unittest("ComponentManagerTestExt") {
   }
 }
 
+ohos_unittest("ComponentManagerTestNew") {
+  module_out_path = module_out_path
+
+  sources = [
+    "src/component_manager_test_new.cpp",
+    "src/mock_capability_info_manager.cpp",
+    "src/mock_component_disable.cpp",
+    "src/mock_component_enable.cpp",
+    "src/mock_component_loader.cpp",
+    "src/mock_device_manager.cpp",
+    "src/mock_dh_context.cpp",
+    "src/mock_dh_utils_tool.cpp",
+    "src/mock_meta_info_manager.cpp",
+    "src/mock_version_manager.cpp",
+    "${innerkits_path}/src/ipc/get_dh_descriptors_callback_stub.cpp",
+    "${services_path}/distributedhardwarefwkservice/src/componentmanager/component_manager.cpp",
+  ]
+
+  cflags = [
+    "-Wall",
+    "-Werror",
+    "-g3",
+    "-Dprivate=public",
+  ]
+
+  configs = [ ":module_private_config" ]
+
+  deps = [
+    "${services_path}/distributedhardwarefwkservice:distributedhardwarefwksvr",
+    "${utils_path}:distributedhardwareutils",
+  ]
+
+  external_deps = [
+    "cJSON:cjson",
+    "c_utils:utils",
+    "device_manager:devicemanagersdk",
+    "dsoftbus:softbus_client",
+    "eventhandler:libeventhandler",
+    "ffrt:libffrt",
+    "googletest:gmock",
+    "googletest:gmock_main",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
+    "ipc:ipc_single",
+    "kv_store:distributeddata_inner",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  defines = [
+    "HI_LOG_ENABLE",
+    "DH_LOG_TAG=\"ComponentManagerTestNew\"",
+    "LOG_DOMAIN=0xD004100",
+  ]
+
+  if (!distributed_hardware_fwk_low_latency) {
+    defines += [ "DHARDWARE_CLOSE_UT" ]
+  } else {
+    defines += [ "DHARDWARE_CHECK_RESOURCE" ]
+  }
+}
+
 group("component_manager_test") {
   testonly = true
   deps = [
     ":ComponentManagerTest",
     ":ComponentManagerTestExt",
+    ":ComponentManagerTestNew",
   ]
 }
