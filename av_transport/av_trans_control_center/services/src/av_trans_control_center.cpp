@@ -57,8 +57,7 @@ int32_t AVTransControlCenter::InitializeAVCenter(const TransRole &transRole, int
 
     if (initialized_.load()) {
         AVTRANS_LOGI("AV control center already initialized.");
-        engineId = rootEngineId_.load();
-        rootEngineId_++;
+        engineId = rootEngineId_.fetch_add(1);
         return DH_AVT_SUCCESS;
     }
 
@@ -72,10 +71,9 @@ int32_t AVTransControlCenter::InitializeAVCenter(const TransRole &transRole, int
     TRUE_RETURN_V_MSG_E((ret != DH_AVT_SUCCESS), ret, "Register control center channel callback failed, ret=%{public}d",
         ret);
 
-    initialized_ = true;
     transRole_ = transRole;
-    engineId = rootEngineId_.load();
-    rootEngineId_++;
+    initialized_.store(true);
+    engineId = rootEngineId_.fetch_add(1);
 
     return DH_AVT_SUCCESS;
 }

@@ -574,6 +574,8 @@ void SoftbusChannelAdapter::OnSoftbusStreamReceived(int32_t sessionId, const Str
     (void)frameInfo;
     TRUE_RETURN(data == nullptr, "input data is nullptr.");
     TRUE_RETURN(ext == nullptr, "input ext data is nullptr.");
+    TRUE_RETURN(data->bufLen > MAX_MESSAGES_LEN, "input data bufLen overflow.");
+    TRUE_RETURN(ext->bufLen > MAX_MESSAGES_LEN, "input ext bufLen overflow.");
 
     std::lock_guard<std::mutex> lock(idMapMutex_);
     for (auto it = devId2SessIdMap_.begin(); it != devId2SessIdMap_.end(); it++) {

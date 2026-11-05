@@ -21,6 +21,7 @@
 #include <fstream>
 
 #include "foundation/utils/constants.h"
+#include "av_trans_constants.h"
 #include "plugin/common/share_memory.h"
 #include "plugin/common/plugin_caps_builder.h"
 #include "plugin/factory/plugin_factory.h"
@@ -254,6 +255,10 @@ void DsoftbusInputPlugin::OnStreamReceived(const StreamData *data, const StreamD
         AVTRANS_LOGE("ext is nullptr.");
         return;
     }
+    if (ext->buf == nullptr || ext->bufLen > MAX_MESSAGES_LEN || ext->bufLen == 0) {
+        AVTRANS_LOGE("ext buf is nullptr or bufLen is illegal.");
+        return;
+    }
     std::string message(reinterpret_cast<const char *>(ext->buf), ext->bufLen);
     AVTRANS_LOGI("Receive message : %{public}s", message.c_str());
     cJSON *resMsg = cJSON_Parse(message.c_str());
@@ -284,6 +289,10 @@ std::shared_ptr<Buffer> DsoftbusInputPlugin::CreateBuffer(uint32_t metaType,
 {
     if (data == nullptr) {
         AVTRANS_LOGE("data is nullptr.");
+        return nullptr;
+    }
+    if (data->buf == nullptr || data->bufLen > MAX_MESSAGES_LEN || data->bufLen == 0) {
+        AVTRANS_LOGE("data buf is nullptr or bufLen is illegal.");
         return nullptr;
     }
     auto buffer = Buffer::CreateDefaultBuffer(static_cast<BufferMetaType>(metaType), data->bufLen);

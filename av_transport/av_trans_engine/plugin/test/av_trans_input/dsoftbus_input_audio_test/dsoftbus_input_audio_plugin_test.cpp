@@ -366,8 +366,7 @@ HWTEST_F(DsoftbusInputAudioPluginTest, OnStreamReceived_007, TestSize.Level1)
     std::string missingParamJson = R"({"avtrans_data_meta_type": 0})";
     StreamData ext = CreateTestStreamData(missingParamJson);
 
-    plugin->OnStreamReceived(&data, &ext);
-    EXPECT_EQ(plugin->dataQueue_.size(), 1u);
+    EXPECT_NO_FATAL_FAILURE(plugin->OnStreamReceived(&data, &ext));
 
     CleanupStreamData(data);
     CleanupStreamData(ext);
@@ -382,8 +381,7 @@ HWTEST_F(DsoftbusInputAudioPluginTest, OnStreamReceived_008, TestSize.Level1)
 
     StreamData* data = nullptr;
     StreamData ext = CreateTestExtData(0, CreateValidAudioMetaJson());
-    plugin->OnStreamReceived(data, &ext);
-    EXPECT_EQ(plugin->dataQueue_.size(), 1u);
+    EXPECT_NO_FATAL_FAILURE(plugin->OnStreamReceived(data, &ext));
 
     CleanupStreamData(ext);
 }

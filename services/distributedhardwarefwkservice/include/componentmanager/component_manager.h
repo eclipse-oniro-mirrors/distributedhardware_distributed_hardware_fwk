@@ -351,6 +351,7 @@ private:
 
     sptr<Ashmem> syncSharedMem_ = nullptr;
     std::shared_ptr<SyncShareData> syncShareData_ = nullptr;
+    std::mutex syncSharedMemMutex_;
 
     DHTopic dhTopic_ = DHTopic::TOPIC_MIN;
     std::mutex dhTopicMtx_;

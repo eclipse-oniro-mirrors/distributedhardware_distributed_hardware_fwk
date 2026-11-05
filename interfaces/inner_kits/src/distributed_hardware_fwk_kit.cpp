@@ -112,8 +112,9 @@ int32_t DistributedHardwareFwkKit::RegisterPublisherListener(const DHTopic topic
     }
 
     int32_t ret = DH_FWK_SUCCESS;
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() != nullptr) {
-        ret = DHFWKSAManager::GetInstance().GetDHFWKProxy()->RegisterPublisherListener(topic, listener);
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy != nullptr) {
+        ret = proxy->RegisterPublisherListener(topic, listener);
         DHLOGI("Register publisher listener to DHFWK, ret: %{public}" PRId32, ret);
         if (ret == DH_FWK_SUCCESS) {
             return DHFWKSAManager::GetInstance().AddPublisherListenerToCache(topic, listener);
@@ -135,8 +136,9 @@ int32_t DistributedHardwareFwkKit::UnregisterPublisherListener(const DHTopic top
     }
 
     int32_t ret = DH_FWK_SUCCESS;
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() != nullptr) {
-        ret = DHFWKSAManager::GetInstance().GetDHFWKProxy()->UnregisterPublisherListener(topic, listener);
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy != nullptr) {
+        ret = proxy->UnregisterPublisherListener(topic, listener);
         DHLOGI("Unregister publisher listener to DHFWK, ret: %{public}" PRId32, ret);
     }
 
@@ -155,12 +157,13 @@ int32_t DistributedHardwareFwkKit::PublishMessage(const DHTopic topic, const std
         return ERR_DH_FWK_PARA_INVALID;
     }
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online, can not publish message");
         return ERR_DH_FWK_PUBLISH_MSG_FAILED;
     }
 
-    int32_t ret = DHFWKSAManager::GetInstance().GetDHFWKProxy()->PublishMessage(topic, message);
+    int32_t ret = proxy->PublishMessage(topic, message);
     DHLOGI("Publish message to DHFWK, ret: %{public}" PRId32, ret);
 
     return ret;
@@ -216,37 +219,40 @@ std::string DistributedHardwareFwkKit::QueryLocalSysSpec(enum QueryLocalSysSpecT
         return "";
     }
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online, can not publish message");
         return "";
     }
 
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->QueryLocalSysSpec(spec);
+    return proxy->QueryLocalSysSpec(spec);
 }
 
 int32_t DistributedHardwareFwkKit::InitializeAVCenter(const TransRole &transRole, int32_t &engineId)
 {
     DHLOGI("Initialize av control center, transRole: %{public}" PRIu32, (uint32_t)transRole);
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not initializeA av control center");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
 
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->InitializeAVCenter(transRole, engineId);
+    return proxy->InitializeAVCenter(transRole, engineId);
 }
 
 int32_t DistributedHardwareFwkKit::ReleaseAVCenter(int32_t engineId)
 {
     DHLOGI("Release av control center, engineId: %{public}" PRId32, engineId);
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not release av control center");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
 
     DHFWKSAManager::GetInstance().RemoveAVTransControlCenterCbFromCache(engineId);
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->ReleaseAVCenter(engineId);
+    return proxy->ReleaseAVCenter(engineId);
 }
 
 int32_t DistributedHardwareFwkKit::CreateControlChannel(int32_t engineId, const std::string &peerDevId)
@@ -254,12 +260,13 @@ int32_t DistributedHardwareFwkKit::CreateControlChannel(int32_t engineId, const 
     DHLOGI("Create av control center channel, engineId: %{public}" PRId32 ", peerDevId=%{public}s.", engineId,
         GetAnonyString(peerDevId).c_str());
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not create av control center channel");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
 
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->CreateControlChannel(engineId, peerDevId);
+    return proxy->CreateControlChannel(engineId, peerDevId);
 }
 
 int32_t DistributedHardwareFwkKit::NotifyAVCenter(int32_t engineId, const AVTransEvent &event)
@@ -267,12 +274,13 @@ int32_t DistributedHardwareFwkKit::NotifyAVCenter(int32_t engineId, const AVTran
     DHLOGI("Notify av control center, engineId: %{public}" PRId32 ", event type=%{public}" PRId32, engineId,
         event.type);
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not notity av control center event.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
 
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->NotifyAVCenter(engineId, event);
+    return proxy->NotifyAVCenter(engineId, event);
 }
 
 int32_t DistributedHardwareFwkKit::RegisterCtlCenterCallback(int32_t engineId,
@@ -280,12 +288,13 @@ int32_t DistributedHardwareFwkKit::RegisterCtlCenterCallback(int32_t engineId,
 {
     DHLOGI("Register av control center callback. engineId: %{public}" PRId32, engineId);
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not register av control center callback.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
     DHFWKSAManager::GetInstance().AddAVTransControlCenterCbToCache(engineId, callback);
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->RegisterCtlCenterCallback(engineId, callback);
+    return proxy->RegisterCtlCenterCallback(engineId, callback);
 }
 
 int32_t DistributedHardwareFwkKit::PauseDistributedHardware(DHType dhType, const std::string &networkId)
@@ -296,13 +305,14 @@ int32_t DistributedHardwareFwkKit::PauseDistributedHardware(DHType dhType, const
     DHLOGI("Pause distributed hardware dhType %{public}u, networkId %{public}s", (uint32_t)dhType,
         GetAnonyString(networkId).c_str());
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not pause distributed hardware.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
     HiSysEventWriteMsg(DHFWK_INIT_END, OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
         "user pause sink ui.");
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->PauseDistributedHardware(dhType, networkId);
+    return proxy->PauseDistributedHardware(dhType, networkId);
 }
 
 int32_t DistributedHardwareFwkKit::ResumeDistributedHardware(DHType dhType, const std::string &networkId)
@@ -313,13 +323,14 @@ int32_t DistributedHardwareFwkKit::ResumeDistributedHardware(DHType dhType, cons
     DHLOGI("Resume distributed hardware dhType %{public}u, networkId %{public}s", (uint32_t)dhType,
         GetAnonyString(networkId).c_str());
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not resume distributed hardware.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
     HiSysEventWriteMsg(DHFWK_INIT_BEGIN, OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
         "user resume sink ui.");
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->ResumeDistributedHardware(dhType, networkId);
+    return proxy->ResumeDistributedHardware(dhType, networkId);
 }
 
 int32_t DistributedHardwareFwkKit::StopDistributedHardware(DHType dhType, const std::string &networkId)
@@ -330,13 +341,14 @@ int32_t DistributedHardwareFwkKit::StopDistributedHardware(DHType dhType, const 
     DHLOGI("Stop distributed hardware dhType %{public}u, networkId %{public}s", (uint32_t)dhType,
         GetAnonyString(networkId).c_str());
 
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not stop distributed hardware.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
     HiSysEventWriteMsg(DHFWK_EXIT_END, OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
         "user stop sink ui.");
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->StopDistributedHardware(dhType, networkId);
+    return proxy->StopDistributedHardware(dhType, networkId);
 }
 
 int32_t DistributedHardwareFwkKit::GetDistributedHardware(const std::string &networkId, EnableStep enableStep,
@@ -364,21 +376,23 @@ int32_t DistributedHardwareFwkKit::GetDistributedHardware(const std::string &net
 int32_t DistributedHardwareFwkKit::RegisterDHStatusListener(sptr<IHDSinkStatusListener> listener)
 {
     DHLOGI("Register distributed hardware status sink listener.");
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not register distributed hardware status listener.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->RegisterDHStatusListener(listener);
+    return proxy->RegisterDHStatusListener(listener);
 }
 
 int32_t DistributedHardwareFwkKit::UnregisterDHStatusListener(sptr<IHDSinkStatusListener> listener)
 {
     DHLOGI("Unregister distributed hardware status sink listener.");
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not unregister distributed hardware status listener.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->UnregisterDHStatusListener(listener);
+    return proxy->UnregisterDHStatusListener(listener);
 }
 
 int32_t DistributedHardwareFwkKit::RegisterDHStatusListener(
@@ -410,31 +424,34 @@ int32_t DistributedHardwareFwkKit::UnregisterDHStatusListener(
         return ERR_DH_FWK_PARA_INVALID;
     }
     DHLOGI("Unregister distributed hardware status source listener %{public}s.", GetAnonyString(networkId).c_str());
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not unregister distributed hardware status listener.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->UnregisterDHStatusListener(networkId, listener);
+    return proxy->UnregisterDHStatusListener(networkId, listener);
 }
 
 int32_t DistributedHardwareFwkKit::EnableSink(const std::vector<DHDescriptor> &descriptors)
 {
     DHLOGI("Enable distributed hardware sink descriptors %{public}s.", DumpDescriptors(descriptors).c_str());
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not enable sink.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->EnableSink(descriptors);
+    return proxy->EnableSink(descriptors);
 }
 
 int32_t DistributedHardwareFwkKit::DisableSink(const std::vector<DHDescriptor> &descriptors)
 {
     DHLOGI("Disable distributed hardware sink descriptors %{public}s.", DumpDescriptors(descriptors).c_str());
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not disable sink.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->DisableSink(descriptors);
+    return proxy->DisableSink(descriptors);
 }
 
 int32_t DistributedHardwareFwkKit::EnableSource(
@@ -445,11 +462,12 @@ int32_t DistributedHardwareFwkKit::EnableSource(
     }
     DHLOGI("Enable distributed hardware source networkId %{public}s, descriptors %{public}s.",
         GetAnonyString(networkId).c_str(), DumpDescriptors(descriptors).c_str());
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not enable source.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->EnableSource(networkId, descriptors);
+    return proxy->EnableSource(networkId, descriptors);
 }
 
 int32_t DistributedHardwareFwkKit::DisableSource(
@@ -460,11 +478,12 @@ int32_t DistributedHardwareFwkKit::DisableSource(
     }
     DHLOGI("Disable distributed hardware source networkId %{public}s, descriptors %{public}s.",
         GetAnonyString(networkId).c_str(), DumpDescriptors(descriptors).c_str());
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not disable source.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->DisableSource(networkId, descriptors);
+    return proxy->DisableSource(networkId, descriptors);
 }
 
 int32_t DistributedHardwareFwkKit::LoadDistributedHDF(const DHType dhType)
@@ -488,11 +507,12 @@ int32_t DistributedHardwareFwkKit::LoadDistributedHDF(const DHType dhType)
 int32_t DistributedHardwareFwkKit::UnLoadDistributedHDF(const DHType dhType)
 {
     DHLOGI("UnLoad distributed HDF, dhType: %{public}u.", dhType);
-    if (DHFWKSAManager::GetInstance().GetDHFWKProxy() == nullptr) {
+    auto proxy = DHFWKSAManager::GetInstance().GetDHFWKProxy();
+    if (proxy == nullptr) {
         DHLOGI("DHFWK not online or get proxy failed, can not unload distributed HDF.");
         return ERR_DH_FWK_POINTER_IS_NULL;
     }
-    return DHFWKSAManager::GetInstance().GetDHFWKProxy()->UnLoadDistributedHDF(dhType);
+    return proxy->UnLoadDistributedHDF(dhType);
 }
 
 int32_t DistributedHardwareFwkKit::RegisterHardwareAccessListener(const DHType dhType,

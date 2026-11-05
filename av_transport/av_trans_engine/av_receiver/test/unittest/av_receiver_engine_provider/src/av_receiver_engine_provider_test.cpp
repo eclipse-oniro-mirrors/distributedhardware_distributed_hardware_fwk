@@ -45,8 +45,10 @@ public:
     virtual int32_t OnProviderEvent(const AVTransEvent &event)
     {
         (void)event;
+        called_ = true;
         return DH_AVT_SUCCESS;
     }
+    bool called_ = false;
 };
 
 HWTEST_F(AvReceiverEngineProviderTest, CreateAVReceiverEngine_001, testing::ext::TestSize.Level1)

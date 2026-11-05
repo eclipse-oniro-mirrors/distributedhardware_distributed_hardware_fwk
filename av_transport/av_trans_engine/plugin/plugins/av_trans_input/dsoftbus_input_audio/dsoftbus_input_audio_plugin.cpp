@@ -16,6 +16,7 @@
 #include "dsoftbus_input_audio_plugin.h"
 
 #include "foundation/utils/constants.h"
+#include "av_trans_constants.h"
 #include "plugin/common/share_memory.h"
 #include "plugin/common/plugin_caps_builder.h"
 #include "plugin/factory/plugin_factory.h"
@@ -238,6 +239,10 @@ void DsoftbusInputAudioPlugin::OnStreamReceived(const StreamData *data, const St
         AVTRANS_LOGE("ext is nullptr.");
         return;
     }
+    if (ext->buf == nullptr || ext->bufLen > MAX_MESSAGES_LEN || ext->bufLen == 0) {
+        AVTRANS_LOGE("ext buf is nullptr or bufLen is illegal.");
+        return;
+    }
     std::string message(reinterpret_cast<const char *>(ext->buf), ext->bufLen);
     AVTRANS_LOGI("Receive message : %{public}s", message.c_str());
 
@@ -258,7 +263,9 @@ void DsoftbusInputAudioPlugin::OnStreamReceived(const StreamData *data, const St
     }
     uint32_t metaType = static_cast<uint32_t>(typeItem->valueint);
     auto buffer = CreateBuffer(metaType, data, resMsg);
-    DataEnqueue(buffer);
+    if (buffer != nullptr) {
+        DataEnqueue(buffer);
+    }
     cJSON_Delete(resMsg);
 }
 
@@ -269,8 +276,16 @@ std::shared_ptr<Buffer> DsoftbusInputAudioPlugin::CreateBuffer(uint32_t metaType
         AVTRANS_LOGE("data is nullptr.");
         return nullptr;
     }
+    if (data->buf == nullptr || data->bufLen > MAX_MESSAGES_LEN || data->bufLen == 0) {
+        AVTRANS_LOGE("data buf is nullptr or bufLen is illegal.");
+        return nullptr;
+    }
     auto buffer = Buffer::CreateDefaultBuffer(static_cast<BufferMetaType>(metaType), data->bufLen);
     auto bufData = buffer->GetMemory();
+    if (bufData == nullptr) {
+        AVTRANS_LOGE("bufferData is nullptr.");
+        return nullptr;
+    }
 
     auto writeSize = bufData->Write(reinterpret_cast<const uint8_t *>(data->buf), data->bufLen, 0);
     if (static_cast<ssize_t>(writeSize) != data->bufLen) {

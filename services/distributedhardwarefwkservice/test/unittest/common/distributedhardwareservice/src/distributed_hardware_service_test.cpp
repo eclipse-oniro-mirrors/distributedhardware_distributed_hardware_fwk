@@ -874,5 +874,23 @@ HWTEST_F(DistributedHardwareServiceTest, CheckRemoteDeviceTypeAndUid_001, TestSi
     ret = service.CheckRemoteDeviceTypeAndUid(udid);
     EXPECT_EQ(false, ret);
 }
+
+/**
+ * @tc.name: OnStop_HandlerCleaned_001
+ * @tc.desc: Verify eventHandler_ is reset to nullptr after OnStop
+ * @tc.type: FUNC
+ * @tc.require: AR000GHSJM
+ */
+HWTEST_F(DistributedHardwareServiceTest, OnStop_HandlerCleaned_001, TestSize.Level1)
+{
+    DistributedHardwareService service(ASID, true);
+    service.registerToService_ = true;
+    bool ret = service.Init();
+    ASSERT_EQ(true, ret);
+    ASSERT_NE(nullptr, service.eventHandler_);
+    service.OnStop();
+    EXPECT_EQ(nullptr, service.eventHandler_);
+    EXPECT_EQ(ServiceRunningState::STATE_NOT_START, service.state_);
+}
 } // namespace DistributedHardware
 } // namespace OHOS

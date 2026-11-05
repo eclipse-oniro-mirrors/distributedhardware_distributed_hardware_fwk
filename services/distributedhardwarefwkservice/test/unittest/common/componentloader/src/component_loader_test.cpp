@@ -987,5 +987,47 @@ HWTEST_F(ComponentLoaderTest, ParseComponentEnableConfig_nullptr_roleEntry, Test
     cJSON_Delete(root);
     ComponentLoader::GetInstance().componentEnableMap_.clear();
 }
+
+/**
+ * @tc.name: ReleaseSink_NotExist_001
+ * @tc.desc: Verify ReleaseSink returns ERR_DH_FWK_TYPE_NOT_EXIST for a non-existent DHType
+ * @tc.type: FUNC
+ * @tc.require: AR000GHSK3
+ */
+HWTEST_F(ComponentLoaderTest, ReleaseSink_NotExist_001, TestSize.Level1)
+{
+    ComponentLoader::GetInstance().compHandlerMap_.clear();
+    DHType dhType = DHType::GPS;
+    auto ret = ComponentLoader::GetInstance().ReleaseSink(dhType);
+    EXPECT_EQ(ERR_DH_FWK_TYPE_NOT_EXIST, ret);
+}
+
+/**
+ * @tc.name: ReleaseSource_NotExist_001
+ * @tc.desc: Verify ReleaseSource returns ERR_DH_FWK_TYPE_NOT_EXIST for a non-existent DHType
+ * @tc.type: FUNC
+ * @tc.require: AR000GHSK3
+ */
+HWTEST_F(ComponentLoaderTest, ReleaseSource_NotExist_001, TestSize.Level1)
+{
+    ComponentLoader::GetInstance().compHandlerMap_.clear();
+    DHType dhType = DHType::GPS;
+    auto ret = ComponentLoader::GetInstance().ReleaseSource(dhType);
+    EXPECT_EQ(ERR_DH_FWK_TYPE_NOT_EXIST, ret);
+}
+
+/**
+ * @tc.name: ReleaseHardwareHandler_NotExist_001
+ * @tc.desc: Verify ReleaseHardwareHandler returns ERR_DH_FWK_TYPE_NOT_EXIST for a non-existent DHType
+ * @tc.type: FUNC
+ * @tc.require: AR000GHSK3
+ */
+HWTEST_F(ComponentLoaderTest, ReleaseHardwareHandler_NotExist_001, TestSize.Level1)
+{
+    ComponentLoader::GetInstance().compHandlerMap_.clear();
+    DHType dhType = DHType::GPS;
+    auto ret = ComponentLoader::GetInstance().ReleaseHardwareHandler(dhType);
+    EXPECT_EQ(ERR_DH_FWK_TYPE_NOT_EXIST, ret);
+}
 } // namespace DistributedHardware
 } // namespace OHOS

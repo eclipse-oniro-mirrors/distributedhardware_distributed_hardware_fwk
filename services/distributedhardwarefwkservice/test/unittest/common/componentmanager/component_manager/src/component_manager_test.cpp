@@ -1178,6 +1178,40 @@ HWTEST_F(ComponentManagerTest, DeinitAVSyncSharedMemory_001, TestSize.Level1)
     ASSERT_NO_FATAL_FAILURE(ComponentManager::GetInstance().DeinitAVSyncSharedMemory());
 }
 
+/**
+ * @tc.name: InitAVSyncSharedMemory_Repeat_001
+ * @tc.desc: Verify InitAVSyncSharedMemory is idempotent when called twice
+ * @tc.type: FUNC
+ * @tc.require: AR000GHSJM
+ */
+HWTEST_F(ComponentManagerTest, InitAVSyncSharedMemory_Repeat_001, TestSize.Level1)
+{
+    ComponentManager::GetInstance().DeinitAVSyncSharedMemory();
+    auto ret = ComponentManager::GetInstance().InitAVSyncSharedMemory();
+    EXPECT_EQ(ret, DH_FWK_SUCCESS);
+    EXPECT_NE(nullptr, ComponentManager::GetInstance().syncSharedMem_);
+    ret = ComponentManager::GetInstance().InitAVSyncSharedMemory();
+    EXPECT_EQ(ret, DH_FWK_SUCCESS);
+    EXPECT_NE(nullptr, ComponentManager::GetInstance().syncSharedMem_);
+    ComponentManager::GetInstance().DeinitAVSyncSharedMemory();
+}
+
+/**
+ * @tc.name: DeinitAVSyncSharedMemory_AfterInit_001
+ * @tc.desc: Verify DeinitAVSyncSharedMemory cleans up syncSharedMem_ after Init
+ * @tc.type: FUNC
+ * @tc.require: AR000GHSJM
+ */
+HWTEST_F(ComponentManagerTest, DeinitAVSyncSharedMemory_AfterInit_001, TestSize.Level1)
+{
+    ComponentManager::GetInstance().DeinitAVSyncSharedMemory();
+    auto ret = ComponentManager::GetInstance().InitAVSyncSharedMemory();
+    EXPECT_EQ(ret, DH_FWK_SUCCESS);
+    EXPECT_NE(nullptr, ComponentManager::GetInstance().syncSharedMem_);
+    ASSERT_NO_FATAL_FAILURE(ComponentManager::GetInstance().DeinitAVSyncSharedMemory());
+    EXPECT_EQ(nullptr, ComponentManager::GetInstance().syncSharedMem_);
+}
+
 HWTEST_F(ComponentManagerTest, GetDHIdByDHSubtype_001, TestSize.Level1)
 {
     std::string networkId = "networkId_123456";
