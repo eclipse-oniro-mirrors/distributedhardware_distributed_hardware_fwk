@@ -43,7 +43,7 @@ void GetDhDescriptorsCallbackProxy::OnSuccess(const std::string &networkId,
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option = { MessageOption::TF_ASYNC };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         DHLOGE("GetDhDescriptorsCallbackProxy write token failed!");
         return;
@@ -78,7 +78,7 @@ void GetDhDescriptorsCallbackProxy::OnError(const std::string &networkId, int32_
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option = { MessageOption::TF_ASYNC };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         DHLOGE("GetDhDescriptorsCallbackProxy write token failed!");
         return;
