@@ -42,6 +42,7 @@ ohos_unittest("DistributedHardwareStubTest") {
     cfi_cross_dso = true
     cfi_no_nvcall = true
     debug = false
+    blocklist = "./cfi_blocklist.txt"
   }
 
   sources = [
