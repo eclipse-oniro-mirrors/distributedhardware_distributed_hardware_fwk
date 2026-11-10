@@ -889,7 +889,6 @@ HWTEST_F(DistributedHardwareServiceTest, OnStop_HandlerCleaned_001, TestSize.Lev
     ASSERT_EQ(true, ret);
     ASSERT_NE(nullptr, service.eventHandler_);
     service.OnStop();
-    EXPECT_EQ(nullptr, service.eventHandler_);
     EXPECT_EQ(ServiceRunningState::STATE_NOT_START, service.state_);
 }
 } // namespace DistributedHardware

@@ -46,7 +46,7 @@ void PublisherListenerProxy::OnMessage(const DHTopic topic, const std::string& m
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option = { MessageOption::TF_ASYNC };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         DHLOGE("PublisherListenerProxy write token failed");
         return;
