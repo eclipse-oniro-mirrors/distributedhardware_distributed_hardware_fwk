@@ -55,6 +55,7 @@ std::shared_ptr<IDistributedModemExt> DHModemContextExt::GetModemExtInstance()
     auto func = (CreateDistributedModemExtImplFuncPtr)dlsym(soHandle_, "CreateDistributedModemExtImplObject");
     if (dlerror() != nullptr || func == nullptr) {
         dlclose(soHandle_);
+        soHandle_ = nullptr;
         DHLOGE("Create object function is not exist.");
         return nullptr;
     }

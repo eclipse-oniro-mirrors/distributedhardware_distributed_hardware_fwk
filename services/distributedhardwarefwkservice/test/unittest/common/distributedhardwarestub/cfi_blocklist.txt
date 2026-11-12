@@ -15,10 +15,6 @@
 # Mock classes inherit from production stubs/proxies but CFI type hash
 # may not match due to LTO specialization differences across build
 # environments, causing false-positive CFI aborts on virtual calls.
+# src: patterns match file paths (snake_case), not class names.
 
-src:*DistributedHardwareStubTest*
-src:*MockDistributedHardwareStub*
-src:*MockIPublisherListener*
-src:*MockGetDhDescriptorsCallbackStub*
-src:*MockHDSinkStatusListenerStub*
-src:*MockHDSourceStatusListenerStub*
+src:*distributedhardwarestub*
