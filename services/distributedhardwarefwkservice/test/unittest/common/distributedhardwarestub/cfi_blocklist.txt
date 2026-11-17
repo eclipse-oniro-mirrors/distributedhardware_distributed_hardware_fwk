@@ -18,3 +18,10 @@
 # src: patterns match file paths (snake_case), not class names.
 
 src:*distributedhardwarestub*
+
+# gtest/gmock template code (ThreadLocal, MockSpec, etc.) instantiated
+# from googletest headers into this instrumented TU still emits CFI
+# vcall checks, while the corresponding vtables may be compiled in the
+# non-LTO googletest static libraries and are not registered in
+# __cfi_check -> false-positive abort in SetUp (EXPECT_CALL path).
+src:*googletest*
