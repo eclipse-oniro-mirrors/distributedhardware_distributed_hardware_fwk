@@ -255,7 +255,7 @@ void DsoftbusInputPlugin::OnStreamReceived(const StreamData *data, const StreamD
         AVTRANS_LOGE("ext is nullptr.");
         return;
     }
-    if (ext->buf == nullptr || ext->bufLen > MAX_MESSAGES_LEN || ext->bufLen == 0) {
+    if (ext->buf == nullptr || ext->bufLen > MAX_MESSAGES_LEN_SIGNED || ext->bufLen == 0) {
         AVTRANS_LOGE("ext buf is nullptr or bufLen is illegal.");
         return;
     }
@@ -291,7 +291,7 @@ std::shared_ptr<Buffer> DsoftbusInputPlugin::CreateBuffer(uint32_t metaType,
         AVTRANS_LOGE("data is nullptr.");
         return nullptr;
     }
-    if (data->buf == nullptr || data->bufLen > MAX_MESSAGES_LEN || data->bufLen == 0) {
+    if (data->buf == nullptr || data->bufLen > MAX_MESSAGES_LEN_SIGNED || data->bufLen == 0) {
         AVTRANS_LOGE("data buf is nullptr or bufLen is illegal.");
         return nullptr;
     }

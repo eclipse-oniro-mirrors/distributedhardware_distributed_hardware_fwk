@@ -403,7 +403,7 @@ void AVTransBusInputFilter::OnStreamReceived(const StreamData *data, const Strea
         return;
     }
     TRUE_RETURN(ext->buf == nullptr, "ext buf is nullptr.");
-    TRUE_RETURN(ext->bufLen > MAX_MESSAGES_LEN || ext->bufLen == 0, "ext bufLen is illegal.");
+    TRUE_RETURN(ext->bufLen > MAX_MESSAGES_LEN_SIGNED || ext->bufLen == 0, "ext bufLen is illegal.");
     std::string message(reinterpret_cast<const char *>(ext->buf), ext->bufLen);
     AVTRANS_LOGD("Receive message : %{public}s", message.c_str());
 
@@ -464,7 +464,7 @@ void AVTransBusInputFilter::StreamDataEnqueue(const StreamData *data, const cJSO
 {
     TRUE_RETURN((outputBufQueProducer_ == nullptr || data == nullptr || extMsg == nullptr), "Producer is null");
     TRUE_RETURN(data->buf == nullptr, "data buf is nullptr.");
-    TRUE_RETURN(data->bufLen > MAX_MESSAGES_LEN || data->bufLen == 0, "data bufLen is illegal.");
+    TRUE_RETURN(data->bufLen > MAX_MESSAGES_LEN_SIGNED || data->bufLen == 0, "data bufLen is illegal.");
     Media::AVBufferConfig config;
     config.size = data->bufLen;
     config.memoryType = Media::MemoryType::VIRTUAL_MEMORY;

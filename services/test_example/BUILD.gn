@@ -15,6 +15,7 @@ import("//build/ohos.gni")
 import("../../distributedhardwarefwk.gni")
 
 ohos_executable("dhfwk_demo_test") {
+  branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
     cfi_cross_dso = true
