@@ -30,6 +30,7 @@
 #include "version_manager.h"
 #include "dh_context.h"
 #include "dh_utils_tool.h"
+#include "task_board.h"
 #include "idistributed_modem_ext.h"
 #include "get_dh_descriptors_callback_stub.h"
 #include "ihardware_status_listener.h"
@@ -134,6 +135,7 @@ void ComponentManagerTestNew::SetUp()
     versionManager_ = std::static_pointer_cast<MockVersionManager>(versionManager);
     auto deviceManager = IDeviceManager::GetOrCreateInstance();
     deviceManager_ = std::static_pointer_cast<MockDeviceManager>(deviceManager);
+    EXPECT_CALL(*utilTool_, GetLocalDeviceInfo()).WillRepeatedly(Return(VALUABLE_DEVICE_INFO));
 
     ComponentManager::GetInstance().compSource_.clear();
     ComponentManager::GetInstance().compSink_.clear();
@@ -147,6 +149,8 @@ void ComponentManagerTestNew::SetUp()
 
 void ComponentManagerTestNew::TearDown()
 {
+    TaskBoard::GetInstance().WaitForALLTaskFinish();
+
     ICapabilityInfoManager::ReleaseInstance();
     IComponentLoader::ReleaseInstance();
     IDHContext::ReleaseInstance();
