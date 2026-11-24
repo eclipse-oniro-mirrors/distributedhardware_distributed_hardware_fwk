@@ -274,6 +274,7 @@ private:
     int32_t UninitCompSource(DHType dhType, bool keepSAMonitor = false);
     int32_t InitCompSink(DHType dhType);
     int32_t UninitCompSink(DHType dhType, bool keepSAMonitor = false);
+    int32_t ResolveSinkPtr(DHType dhType, IDistributedHardwareSink *&sinkPtr, bool &needReleaseDlopenSink);
     void InitDHCommTool();
     void UnInitDHCommTool();
     int32_t StartSource(DHType dhType, ActionResult &sourceResult);
@@ -385,7 +386,6 @@ private:
 
     WorkModeParam workModeParam_;
     std::mutex workModeParamMtx_;
-
 
     DHTopic dhTopic_ = DHTopic::TOPIC_MIN;
     std::mutex dhTopicMtx_;

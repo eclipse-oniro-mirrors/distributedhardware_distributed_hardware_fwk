@@ -42,6 +42,44 @@ FWK_IMPLEMENT_SINGLE_INSTANCE(LocalHardwareManager)
 LocalHardwareManager::LocalHardwareManager() {}
 LocalHardwareManager::~LocalHardwareManager() {}
 
+void LocalHardwareManager::InitSingleHardware(DHType dhType)
+{
+    int64_t singleQueryStartTime = GetCurrentTime();
+    IHardwareHandler *hardwareHandler = nullptr;
+    int32_t status = ComponentLoader::GetInstance().GetHardwareHandler(dhType, hardwareHandler);
+    if (status != DH_FWK_SUCCESS || hardwareHandler == nullptr) {
+        DHLOGE("GetHardwareHandler %{public}#X failed", dhType);
+        return;
+    }
+    if (dhType == DHType::CAMERA) {
+        ReadyGateResult gate = WaitCameraHalReady();
+        if (gate.ready) {
+            DHLOGI("camera HAL ready gate passed, probes: %{public}u", gate.probes);
+        } else {
+            DHLOGE("camera HAL ready gate timeout after %{public}u probes, "
+                "proceed anyway (EX2 degradation)", gate.probes);
+        }
+    }
+    if (hardwareHandler->Initialize() != DH_FWK_SUCCESS) {
+        DHLOGE("Initialize %{public}#X failed", dhType);
+        return;
+    }
+    QueryLocalHardware(dhType, hardwareHandler);
+    if (!hardwareHandler->IsSupportPlugin()) {
+        DHLOGI("hardwareHandler is not support hot swap plugin, release!");
+        ComponentLoader::GetInstance().ReleaseHardwareHandler(dhType);
+        hardwareHandler = nullptr;
+    } else {
+        compToolFuncsMap_[dhType] = hardwareHandler;
+        std::shared_ptr<PluginListener> listener = std::make_shared<PluginListenerImpl>(dhType);
+        pluginListenerMap_[dhType] = listener;
+        hardwareHandler->RegisterPluginListener(listener);
+    }
+    int64_t singleQueryEndTime = GetCurrentTime();
+    DHLOGI("query %{public}#X hardware cost time: %{public}" PRIu64 " ms",
+        dhType, singleQueryEndTime - singleQueryStartTime);
+}
+
 void LocalHardwareManager::Init()
 {
     DHLOGI("start");
@@ -50,54 +88,7 @@ void LocalHardwareManager::Init()
     ComponentLoader::GetInstance().GetAllCompTypes(allCompTypes);
     int64_t allQueryStartTime = GetCurrentTime();
     for (auto dhType : allCompTypes) {
-        int64_t singleQueryStartTime = GetCurrentTime();
-        IHardwareHandler *hardwareHandler = nullptr;
-        int32_t status = ComponentLoader::GetInstance().GetHardwareHandler(dhType, hardwareHandler);
-        if (status != DH_FWK_SUCCESS || hardwareHandler == nullptr) {
-            DHLOGE("GetHardwareHandler %{public}#X failed", dhType);
-            continue;
-        }
-        if (dhType == DHType::CAMERA) {
-            /*
-             * DEF-20bB-1 (TASK-22, route A-adjusted): the camera_lite client
-             * caches its first enumeration for the whole process lifetime
-             * (CameraManager singleton cameraMapCache_, filled only at
-             * construction; GetCameraIds() never re-queries), and the
-             * handler Initialize() below is what constructs that singleton.
-             * Boot-window overlap with the media_server HAL init (~3s+, SA
-             * registered before HAL ready per media_main.cpp) used to freeze
-             * 0 cameras until daemon restart -- the EX2 3x1s retry below
-             * cannot pierce the cache. Gate the first client construction on
-             * the HAL-owner readiness flag; fail-open keeps the legacy EX2
-             * degradation on timeout. See camera_hal_ready_gate.h.
-             */
-            ReadyGateResult gate = WaitCameraHalReady();
-            if (gate.ready) {
-                DHLOGI("camera HAL ready gate passed, probes: %{public}u", gate.probes);
-            } else {
-                DHLOGE("camera HAL ready gate timeout after %{public}u probes, "
-                    "proceed anyway (EX2 degradation)", gate.probes);
-            }
-        }
-        if (hardwareHandler->Initialize() != DH_FWK_SUCCESS) {
-            DHLOGE("Initialize %{public}#X failed", dhType);
-            continue;
-        }
-
-        QueryLocalHardware(dhType, hardwareHandler);
-        if (!hardwareHandler->IsSupportPlugin()) {
-            DHLOGI("hardwareHandler is not support hot swap plugin, release!");
-            ComponentLoader::GetInstance().ReleaseHardwareHandler(dhType);
-            hardwareHandler = nullptr;
-        } else {
-            compToolFuncsMap_[dhType] = hardwareHandler;
-            std::shared_ptr<PluginListener> listener = std::make_shared<PluginListenerImpl>(dhType);
-            pluginListenerMap_[dhType] = listener;
-            hardwareHandler->RegisterPluginListener(listener);
-        }
-        int64_t singleQueryEndTime = GetCurrentTime();
-        DHLOGI("query %{public}#X hardware cost time: %{public}" PRIu64 " ms",
-            dhType, singleQueryEndTime - singleQueryStartTime);
+        InitSingleHardware(dhType);
     }
     int64_t allQueryEndTime = GetCurrentTime();
     DHLOGI("query all local hardware cost time: %{public}" PRIu64 " ms", allQueryEndTime - allQueryStartTime);

@@ -24,6 +24,37 @@ constexpr uint32_t HEX_CHAR_LEN = 2;
 constexpr uint32_t BITS_PER_BYTE = 8;
 constexpr uint32_t BIG_ENDIAN_OFFSET = 24;
 constexpr uint32_t STATE_WORDS = 8;
+constexpr uint32_t BYTES_PER_WORD = 4;
+constexpr uint32_t WORD_BIT_OFFSET_BYTE1 = 16;
+constexpr uint32_t WORD_BIT_OFFSET_BYTE2 = 8;
+constexpr uint32_t ROTR_BITS_2 = 2;
+constexpr uint32_t ROTR_BITS_3 = 3;
+constexpr uint32_t ROTR_BITS_6 = 6;
+constexpr uint32_t ROTR_BITS_7 = 7;
+constexpr uint32_t ROTR_BITS_10 = 10;
+constexpr uint32_t ROTR_BITS_11 = 11;
+constexpr uint32_t ROTR_BITS_13 = 13;
+constexpr uint32_t ROTR_BITS_15 = 15;
+constexpr uint32_t ROTR_BITS_16 = 16;
+constexpr uint32_t ROTR_BITS_17 = 17;
+constexpr uint32_t ROTR_BITS_18 = 18;
+constexpr uint32_t ROTR_BITS_19 = 19;
+constexpr uint32_t ROTR_BITS_22 = 22;
+constexpr uint32_t ROTR_BITS_25 = 25;
+constexpr uint32_t SCHED_IDX_2 = 2;
+constexpr uint32_t SCHED_IDX_7 = 7;
+constexpr uint32_t SCHED_IDX_15 = 15;
+constexpr uint32_t SCHED_IDX_16 = 16;
+constexpr uint32_t STATE_IDX_0 = 0;
+constexpr uint32_t STATE_IDX_1 = 1;
+constexpr uint32_t STATE_IDX_2 = 2;
+constexpr uint32_t STATE_IDX_3 = 3;
+constexpr uint32_t STATE_IDX_4 = 4;
+constexpr uint32_t STATE_IDX_5 = 5;
+constexpr uint32_t STATE_IDX_6 = 6;
+constexpr uint32_t STATE_IDX_7 = 7;
+constexpr uint32_t NIBBLE_HIGH_SHIFT = 4;
+constexpr uint32_t NIBBLE_MASK = 0x0F;
 
 /* FIPS 180-4 section 4.2.2: first 32 bits of the fractional parts of the
  * cube roots of the first 64 primes. */
@@ -64,29 +95,29 @@ inline uint32_t Maj(uint32_t x, uint32_t y, uint32_t z)
 
 inline uint32_t BigSigma0(uint32_t x)
 {
-    return Rotr(x, 2) ^ Rotr(x, 13) ^ Rotr(x, 22);
+    return Rotr(x, ROTR_BITS_2) ^ Rotr(x, ROTR_BITS_13) ^ Rotr(x, ROTR_BITS_22);
 }
 
 inline uint32_t BigSigma1(uint32_t x)
 {
-    return Rotr(x, 6) ^ Rotr(x, 11) ^ Rotr(x, 25);
+    return Rotr(x, ROTR_BITS_6) ^ Rotr(x, ROTR_BITS_11) ^ Rotr(x, ROTR_BITS_25);
 }
 
 inline uint32_t SmallSigma0(uint32_t x)
 {
-    return Rotr(x, 7) ^ Rotr(x, 18) ^ (x >> 3);
+    return Rotr(x, ROTR_BITS_7) ^ Rotr(x, ROTR_BITS_18) ^ (x >> ROTR_BITS_3);
 }
 
 inline uint32_t SmallSigma1(uint32_t x)
 {
-    return Rotr(x, 17) ^ Rotr(x, 19) ^ (x >> 10);
+    return Rotr(x, ROTR_BITS_17) ^ Rotr(x, ROTR_BITS_19) ^ (x >> ROTR_BITS_10);
 }
 
 /* Read a 32-bit big-endian word (FIPS 180-4 message schedule is big-endian). */
 inline uint32_t LoadBE32(const uint8_t *p)
 {
     return (static_cast<uint32_t>(p[0]) << BIG_ENDIAN_OFFSET) |
-           (static_cast<uint32_t>(p[1]) << 16) |
+           (static_cast<uint32_t>(p[1]) << WORD_BIT_OFFSET_BYTE1) |
            (static_cast<uint32_t>(p[2]) << BITS_PER_BYTE) |
            static_cast<uint32_t>(p[3]);
 }
@@ -94,7 +125,7 @@ inline uint32_t LoadBE32(const uint8_t *p)
 inline void StoreBE32(uint8_t *p, uint32_t v)
 {
     p[0] = static_cast<uint8_t>(v >> BIG_ENDIAN_OFFSET);
-    p[1] = static_cast<uint8_t>(v >> 16);
+    p[1] = static_cast<uint8_t>(v >> WORD_BIT_OFFSET_BYTE1);
     p[2] = static_cast<uint8_t>(v >> BITS_PER_BYTE);
     p[3] = static_cast<uint8_t>(v);
 }
@@ -103,21 +134,22 @@ inline void StoreBE32(uint8_t *p, uint32_t v)
 void ProcessBlock(const uint8_t *block, uint32_t *state)
 {
     uint32_t w[SCHEDULE_LEN] = {0};
-    for (uint32_t i = 0; i < SHA256_BLOCK_LEN / 4; ++i) {
-        w[i] = LoadBE32(block + i * 4);
+    for (uint32_t i = 0; i < SHA256_BLOCK_LEN / BYTES_PER_WORD; ++i) {
+        w[i] = LoadBE32(block + i * BYTES_PER_WORD);
     }
-    for (uint32_t i = SHA256_BLOCK_LEN / 4; i < SCHEDULE_LEN; ++i) {
-        w[i] = SmallSigma1(w[i - 2]) + w[i - 7] + SmallSigma0(w[i - 15]) + w[i - 16];
+    for (uint32_t i = SHA256_BLOCK_LEN / BYTES_PER_WORD; i < SCHEDULE_LEN; ++i) {
+        w[i] = SmallSigma1(w[i - SCHED_IDX_2]) + w[i - SCHED_IDX_7] +
+               SmallSigma0(w[i - SCHED_IDX_15]) + w[i - SCHED_IDX_16];
     }
 
-    uint32_t a = state[0];
-    uint32_t b = state[1];
-    uint32_t c = state[2];
-    uint32_t d = state[3];
-    uint32_t e = state[4];
-    uint32_t f = state[5];
-    uint32_t g = state[6];
-    uint32_t h = state[7];
+    uint32_t a = state[STATE_IDX_0];
+    uint32_t b = state[STATE_IDX_1];
+    uint32_t c = state[STATE_IDX_2];
+    uint32_t d = state[STATE_IDX_3];
+    uint32_t e = state[STATE_IDX_4];
+    uint32_t f = state[STATE_IDX_5];
+    uint32_t g = state[STATE_IDX_6];
+    uint32_t h = state[STATE_IDX_7];
 
     for (uint32_t i = 0; i < SCHEDULE_LEN; ++i) {
         uint32_t t1 = h + BigSigma1(e) + Ch(e, f, g) + K[i] + w[i];
@@ -132,14 +164,14 @@ void ProcessBlock(const uint8_t *block, uint32_t *state)
         a = t1 + t2;
     }
 
-    state[0] += a;
-    state[1] += b;
-    state[2] += c;
-    state[3] += d;
-    state[4] += e;
-    state[5] += f;
-    state[6] += g;
-    state[7] += h;
+    state[STATE_IDX_0] += a;
+    state[STATE_IDX_1] += b;
+    state[STATE_IDX_2] += c;
+    state[STATE_IDX_3] += d;
+    state[STATE_IDX_4] += e;
+    state[STATE_IDX_5] += f;
+    state[STATE_IDX_6] += g;
+    state[STATE_IDX_7] += h;
 }
 } // namespace
 
@@ -181,7 +213,7 @@ void Sha256Digest(const uint8_t *data, size_t len, uint8_t *digest)
     }
 
     for (uint32_t i = 0; i < STATE_WORDS; ++i) {
-        StoreBE32(digest + i * 4, state[i]);
+        StoreBE32(digest + i * BYTES_PER_WORD, state[i]);
     }
 }
 
@@ -194,8 +226,8 @@ std::string Sha256Hex(const std::string &in)
     const char *hexCode = "0123456789abcdef";
     std::string out(SHA256_DIGEST_LEN * HEX_CHAR_LEN, '0');
     for (uint32_t i = 0; i < SHA256_DIGEST_LEN; ++i) {
-        out[i * HEX_CHAR_LEN] = hexCode[(digest[i] >> 4) & 0x0FU];
-        out[i * HEX_CHAR_LEN + 1] = hexCode[digest[i] & 0x0FU];
+        out[i * HEX_CHAR_LEN] = hexCode[(digest[i] >> NIBBLE_HIGH_SHIFT) & NIBBLE_MASK];
+        out[i * HEX_CHAR_LEN + 1] = hexCode[digest[i] & NIBBLE_MASK];
     }
     return out;
 }

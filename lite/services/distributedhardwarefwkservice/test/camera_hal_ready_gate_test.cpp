@@ -61,16 +61,36 @@ using namespace OHOS::DistributedHardware;
 static int g_failures = 0;
 static int g_checks = 0;
 
-#define T22_CHECK(cond, msg)                                                 \
-    do {                                                                     \
-        g_checks++;                                                          \
-        if (!(cond)) {                                                       \
-            g_failures++;                                                    \
-            fprintf(stderr, "FAIL [%s:%d] %s\n", __FILE__, __LINE__, (msg)); \
-        } else {                                                             \
-            fprintf(stderr, "ok   %s\n", (msg));                             \
-        }                                                                    \
-    } while (0)
+static void LogMsg(const char *msg)
+{
+    int32_t ret = fprintf(stderr, "%s\n", msg);
+    if (ret < 0) {
+        (void)ret;
+    }
+}
+
+static inline void T22Check(bool cond, const char *msg, const char *file, int line)
+{
+    g_checks++;
+    if (!cond) {
+        g_failures++;
+        char buf[256];
+        int32_t ret = snprintf(buf, sizeof(buf), "FAIL [%s:%d] %s", file, line, msg);
+        if (ret < 0) {
+            (void)ret;
+        }
+        LogMsg(buf);
+    } else {
+        char buf[256];
+        int32_t ret = snprintf(buf, sizeof(buf), "ok   %s", msg);
+        if (ret < 0) {
+            (void)ret;
+        }
+        LogMsg(buf);
+    }
+}
+
+#define T22_CHECK(cond, msg) T22Check((cond), (msg), __FILE__, __LINE__)
 
 namespace {
 // Stub probe: returns false for the first `falseTimes` calls, then true.
@@ -107,7 +127,7 @@ void TouchFile(const std::string &path)
 
 void TestCoreImmediateReady()
 {
-    fprintf(stderr, "-- branch 1: immediate ready (HAL flag already present, e.g. kill-relaunch)\n");
+    LogMsg("-- branch 1: immediate ready (HAL flag already present, e.g. kill-relaunch)");
     TimedProbe probe {0};
     StepCounter step;
     ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
@@ -119,7 +139,7 @@ void TestCoreImmediateReady()
 
 void TestCoreReadyAfter3s()
 {
-    fprintf(stderr, "-- branch 2: ready after 3s (20bB boot timeline: HAL window overlaps query window)\n");
+    LogMsg("-- branch 2: ready after 3s (20bB boot timeline: HAL window overlaps query window)");
     TimedProbe probe {3};
     StepCounter step;
     ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
@@ -130,7 +150,7 @@ void TestCoreReadyAfter3s()
 
 void TestCoreTimeout()
 {
-    fprintf(stderr, "-- branch 3: timeout (flag never appears -> fail-open, EX2 degradation retained)\n");
+    LogMsg("-- branch 3: timeout (flag never appears -> fail-open, EX2 degradation retained)");
     TimedProbe probe {UINT32_MAX};
     StepCounter step;
     ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
@@ -141,7 +161,7 @@ void TestCoreTimeout()
 
 void TestCoreDegenerateArgs()
 {
-    fprintf(stderr, "-- core degenerate args: null probe / maxProbes=0 must not crash or hang\n");
+    LogMsg("-- core degenerate args: null probe / maxProbes=0 must not crash or hang");
     StepCounter step;
     ReadyGateResult r1 = WaitForReadyGate(nullptr, std::ref(step), 15);
     T22_CHECK(!r1.ready && r1.probes == 0, "core: null probe -> not ready, 0 probes");
@@ -154,10 +174,14 @@ void TestCoreDegenerateArgs()
 
 void TestWrapperFlagPresent()
 {
-    fprintf(stderr, "-- wrapper: flag present -> immediate pass (relaunch path keeps 153ms recovery)\n");
+    LogMsg("-- wrapper: flag present -> immediate pass (relaunch path keeps 153ms recovery)");
     std::string path = TmpFlagPath("present");
     TouchFile(path);
     time_t t0 = time(nullptr);
+    if (t0 == static_cast<time_t>(-1)) {
+        LogMsg("wrapper: time() failed, using 0 baseline");
+        t0 = 0;
+    }
     ReadyGateResult r = WaitCameraHalReady(3, 1, path.c_str());
     time_t elapsed = time(nullptr) - t0;
     T22_CHECK(r.ready && r.probes == 1, "wrapper: existing flag -> ready on first probe");
@@ -167,7 +191,7 @@ void TestWrapperFlagPresent()
 
 void TestWrapperFlagLate()
 {
-    fprintf(stderr, "-- wrapper: flag appears mid-wait (child touches it after ~2s)\n");
+    LogMsg("-- wrapper: flag appears mid-wait (child touches it after ~2s)");
     std::string path = TmpFlagPath("late");
     unlink(path.c_str());
     pid_t pid = fork();
@@ -189,22 +213,26 @@ void TestWrapperFlagLate()
 
 void TestWrapperTimeout()
 {
-    fprintf(stderr, "-- wrapper: flag absent -> fail-open timeout with real ~1s cadence\n");
+    LogMsg("-- wrapper: flag absent -> fail-open timeout with real ~1s cadence");
     std::string path = TmpFlagPath("absent");
     unlink(path.c_str());
     time_t t0 = time(nullptr);
+    if (t0 == static_cast<time_t>(-1)) {
+        LogMsg("wrapper: time() failed, using 0 baseline");
+        t0 = 0;
+    }
     ReadyGateResult r = WaitCameraHalReady(2, 1, path.c_str());
     time_t elapsed = time(nullptr) - t0;
     T22_CHECK(!r.ready, "wrapper: absent flag -> not ready (fail-open)");
     T22_CHECK(r.probes == 2, "wrapper: timeout=2/interval=1 -> 2 probes");
     T22_CHECK(elapsed >= 1 && elapsed <= 4, "wrapper: wall time honors interval (~2s)");
-    ReadyGateResult rn = WaitCameraHalReady(2, 1, nullptr);
-    T22_CHECK(!rn.ready && rn.probes == 0, "wrapper: null flagPath -> safe, 0 probes");
+    ReadyGateResult rNull = WaitCameraHalReady(2, 1, nullptr);
+    T22_CHECK(!rNull.ready && rNull.probes == 0, "wrapper: null flagPath -> safe, 0 probes");
 }
 
 void TestProductionConstants()
 {
-    fprintf(stderr, "-- production constants: cross-repo readiness contract pinning\n");
+    LogMsg("-- production constants: cross-repo readiness contract pinning");
     T22_CHECK(strcmp(CAMERA_HAL_READY_FLAG, "/dev/.camera_hal_inited") == 0,
         "flag path verbatim == camera_lite CAMERA_HAL_INIT_FLAG (camera_service.cpp:28 @af78fdc)");
     T22_CHECK(CAMERA_HAL_READY_TIMEOUT_SEC == 15, "timeout cap = 15s (TASK-22 target)");
@@ -216,7 +244,7 @@ void TestProductionConstants()
 
 int main()
 {
-    fprintf(stderr, "==== camera_hal_ready_gate_test (TASK-22: DEF-20bB-1 route A-adjusted) ====\n");
+    LogMsg("==== camera_hal_ready_gate_test (TASK-22: DEF-20bB-1 route A-adjusted) ====");
     TestCoreImmediateReady();
     TestCoreReadyAfter3s();
     TestCoreTimeout();
@@ -225,7 +253,13 @@ int main()
     TestWrapperFlagLate();
     TestWrapperTimeout();
     TestProductionConstants();
-    fprintf(stderr, "==== camera_hal_ready_gate_test %s (checks=%d failures=%d) ====\n",
+    char buf[256];
+    int32_t ret = snprintf(buf, sizeof(buf),
+        "==== camera_hal_ready_gate_test %s (checks=%d failures=%d) ====",
         g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
+    if (ret < 0) {
+        (void)ret;
+    }
+    LogMsg(buf);
     return g_failures == 0 ? 0 : 1;
 }

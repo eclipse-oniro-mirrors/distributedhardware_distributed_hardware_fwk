@@ -120,7 +120,6 @@ int32_t DistributedHardwareManager::SendOffLineEvent(const std::string &networkI
     TaskExecutor::GetInstance().PushTask(task);
     Publisher::GetInstance().PublishMessage(DHTopic::TOPIC_DEV_OFFLINE, networkId);
 
-
     return DH_FWK_SUCCESS;
 }
 

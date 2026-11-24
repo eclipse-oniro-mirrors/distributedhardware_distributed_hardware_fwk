@@ -41,20 +41,66 @@ public:
     sptr() = default;
     sptr(std::nullptr_t) {}
     sptr(T* p) : ptr_(p) {}
-    sptr(const sptr<T>& other) : ptr_(other.ptr_) {}
-    sptr(sptr<T>&& other) : ptr_(other.ptr_) { other.ptr_ = nullptr; }
-    sptr<T>& operator=(const sptr<T>& other) { ptr_ = other.ptr_; return *this; }
-    sptr<T>& operator=(sptr<T>&& other) { ptr_ = other.ptr_; other.ptr_ = nullptr; return *this; }
-    sptr<T>& operator=(std::nullptr_t) { ptr_ = nullptr; return *this; }
-    sptr<T>& operator=(T* p) { ptr_ = p; return *this; }
-    T* operator->() const { return ptr_; }
-    T& operator*() const { return *ptr_; }
-    T* GetRefPtr() const { return ptr_; }
-    explicit operator bool() const { return ptr_ != nullptr; }
-    bool operator==(std::nullptr_t) const { return ptr_ == nullptr; }
-    bool operator!=(std::nullptr_t) const { return ptr_ != nullptr; }
-    bool operator==(const sptr<T>& other) const { return ptr_ == other.ptr_; }
-    bool operator!=(const sptr<T>& other) const { return ptr_ != other.ptr_; }
+    sptr(const sptr<T>& other)
+        : ptr_(other.ptr_) {}
+    sptr(sptr<T>&& other)
+        : ptr_(other.ptr_)
+    {
+        other.ptr_ = nullptr;
+    }
+    sptr<T>& operator=(const sptr<T>& other)
+    {
+        ptr_ = other.ptr_;
+        return *this;
+    }
+    sptr<T>& operator=(sptr<T>&& other)
+    {
+        ptr_ = other.ptr_;
+        other.ptr_ = nullptr;
+        return *this;
+    }
+    sptr<T>& operator=(std::nullptr_t)
+    {
+        ptr_ = nullptr;
+        return *this;
+    }
+    sptr<T>& operator=(T* p)
+    {
+        ptr_ = p;
+        return *this;
+    }
+    T* operator->() const
+    {
+        return ptr_;
+    }
+    T& operator*() const
+    {
+        return *ptr_;
+    }
+    T* GetRefPtr() const
+    {
+        return ptr_;
+    }
+    explicit operator bool() const
+    {
+        return ptr_ != nullptr;
+    }
+    bool operator==(std::nullptr_t) const
+    {
+        return ptr_ == nullptr;
+    }
+    bool operator!=(std::nullptr_t) const
+    {
+        return ptr_ != nullptr;
+    }
+    bool operator==(const sptr<T>& other) const
+    {
+        return ptr_ == other.ptr_;
+    }
+    bool operator!=(const sptr<T>& other) const
+    {
+        return ptr_ != other.ptr_;
+    }
 private:
     T* ptr_ = nullptr;
 };

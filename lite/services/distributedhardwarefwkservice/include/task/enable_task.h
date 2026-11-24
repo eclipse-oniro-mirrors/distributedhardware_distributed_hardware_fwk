@@ -28,7 +28,6 @@ public:
     virtual ~EnableTask();
     virtual void DoTask();
 
-
 private:
     /* synchronous function for register distributed hardware, return on asynchronous register finish */
     int32_t RegisterHardware();

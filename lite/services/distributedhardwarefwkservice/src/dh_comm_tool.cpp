@@ -215,8 +215,6 @@ std::string DHCommTool::SplitString(const std::string &capInfoPrefix)
     return prefix;
 }
 
-
-
 const std::shared_ptr<DHTransport> DHCommTool::GetDHTransportPtr()
 {
     return this->dhTransportPtr_;

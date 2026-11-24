@@ -89,7 +89,6 @@ void DisableTask::DoTaskInner()
 
 int32_t DisableTask::UnRegisterHardware()
 {
-
     int32_t ret = DH_FWK_SUCCESS;
 
     // Determine whether it is an active disable

@@ -56,6 +56,7 @@ public:
 
 private:
     void QueryLocalHardware(const DHType dhType, IHardwareHandler *hardwareHandler);
+    void InitSingleHardware(DHType dhType);
     void AddLocalCapabilityInfo(const std::vector<DHItem> &dhItems, const DHType dhType,
                                 std::vector<std::shared_ptr<CapabilityInfo>> &capabilityInfos);
     void AddLocalMetaCapInfo(const std::vector<DHItem> &dhItems, const DHType dhType,

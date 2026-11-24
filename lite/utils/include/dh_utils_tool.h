@@ -73,9 +73,6 @@ bool IsMessageLengthValid(const std::string &input);
 
 bool IsJsonLengthValid(const std::string &jsonStr);
 
-
-
-
 int32_t GetDeviceSystemType(const std::string &extraData);
 } // namespace DistributedHardware
 } // namespace OHOS

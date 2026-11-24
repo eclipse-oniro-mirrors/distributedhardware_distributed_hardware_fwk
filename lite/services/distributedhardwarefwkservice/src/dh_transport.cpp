@@ -122,6 +122,27 @@ bool DHTransport::GetForegroundUserInfo(int32_t targetUserId, int32_t &userId, s
     return false;
 }
 
+void DHTransport::ProcessFullCapsRsp(std::shared_ptr<DHCommTool> &dhCommToolSPtr,
+    std::shared_ptr<CommMsg> &commMsg, const std::string &remoteNeworkId)
+{
+    FullCapsRsp capsRsp = dhCommToolSPtr->ParseAndSaveRemoteDHCaps(commMsg->msg,
+        commMsg->isSyncMeta, commMsg->realNetworkId);
+    if (capsRsp.caps.empty() && capsRsp.metaCaps.empty()) {
+        return;
+    }
+    std::vector<DHDescriptor> descriptors;
+    for (auto const &cap : capsRsp.caps) {
+        if (cap == nullptr) {
+            continue;
+        }
+        DHDescriptor descriptor;
+        descriptor.id = cap->GetDHId();
+        descriptor.dhType = cap->GetDHType();
+        descriptors.push_back(descriptor);
+    }
+    ComponentManager::GetInstance().OnGetDescriptors(remoteNeworkId, descriptors);
+}
+
 void DHTransport::HandleReceiveMessage(const std::string &payload, const std::string &remoteNeworkId)
 {
     if (!IsMessageLengthValid(payload)) {
@@ -149,20 +170,7 @@ void DHTransport::HandleReceiveMessage(const std::string &payload, const std::st
     if (commMsg->code == DH_COMM_REQ_FULL_CAPS) {
         dhCommToolSPtr->GetAndSendLocalFullCaps(commMsg->msg, commMsg->isSyncMeta);
     } else if (commMsg->code == DH_COMM_RSP_FULL_CAPS) {
-        FullCapsRsp capsRsp = dhCommToolSPtr->ParseAndSaveRemoteDHCaps(commMsg->msg,
-            commMsg->isSyncMeta, commMsg->realNetworkId);
-        if (!capsRsp.caps.empty() || !capsRsp.metaCaps.empty()) {
-            // full caps received, trigger OnGetDescriptors
-            std::vector<DHDescriptor> descriptors;
-            for (auto const &cap : capsRsp.caps) {
-                if (cap == nullptr) continue;
-                DHDescriptor descriptor;
-                descriptor.id = cap->GetDHId();
-                descriptor.dhType = cap->GetDHType();
-                descriptors.push_back(descriptor);
-            }
-            ComponentManager::GetInstance().OnGetDescriptors(remoteNeworkId, descriptors);
-        }
+        ProcessFullCapsRsp(dhCommToolSPtr, commMsg, remoteNeworkId);
     }
 }
 
