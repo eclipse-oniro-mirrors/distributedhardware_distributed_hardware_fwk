@@ -46,6 +46,7 @@ using OHOS::DistributedHardware::SOFTBUS_NODE_KEY_UDID;
 using OHOS::DistributedHardware::SOFTBUS_NODE_KEY_UUID;
 
 namespace {
+constexpr size_t MAX_NODE_ID_LEN = 64;
 int g_total = 0;
 int g_failed = 0;
 
@@ -111,13 +112,17 @@ extern "C" int32_t GetNodeKeyInfo(const char *pkgName, const char *networkId,
         return g_stubRet;
     }
     if (g_stubFillWithoutNul) {
-        std::memset(info, 'A', static_cast<size_t>(infoLen));
+        for (int32_t i = 0; i < infoLen; ++i) {
+            info[i] = static_cast<uint8_t>('A');
+        }
         return SOFTBUS_OK;
     }
     if (static_cast<int32_t>(g_stubValue.size()) >= infoLen) {
         return STUB_FAIL_RET;
     }
-    std::memcpy(info, g_stubValue.c_str(), g_stubValue.size() + 1);
+    for (size_t i = 0; i <= g_stubValue.size(); ++i) {
+        info[i] = static_cast<uint8_t>(g_stubValue[i]);
+    }
     return SOFTBUS_OK;
 }
 
@@ -180,7 +185,7 @@ int main()
     value = "dirty";
     ret = GetSoftbusNodeKey("netId-005", SOFTBUS_NODE_KEY_UUID, value);
     CheckBool("hardening.no_nul.ret_ok", ret == SOFTBUS_NODE_KEY_OK);
-    CheckBool("hardening.no_nul.bounded_len", !value.empty() && value.size() <= 64);
+    CheckBool("hardening.no_nul.bounded_len", !value.empty() && value.size() <= MAX_NODE_ID_LEN);
 
     std::printf("\nnode_key_provider_test: total=%d failed=%d\n", g_total, g_failed);
     return g_failed == 0 ? 0 : 1;

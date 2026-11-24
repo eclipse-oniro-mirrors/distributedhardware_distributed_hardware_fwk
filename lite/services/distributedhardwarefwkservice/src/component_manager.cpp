@@ -1849,10 +1849,9 @@ int32_t ComponentManager::InitCompSink(DHType dhType)
     return DH_FWK_SUCCESS;
 }
 
-int32_t ComponentManager::UninitCompSink(DHType dhType, bool keepSAMonitor)
+int32_t ComponentManager::ResolveSinkPtr(DHType dhType, IDistributedHardwareSink *&sinkPtr,
+    bool &needReleaseDlopenSink)
 {
-    std::unique_lock<std::shared_mutex> lock(compSinkMutex_);
-    IDistributedHardwareSink *sinkPtr = nullptr;
     std::shared_ptr<IHardwareHandler> staticHandler = nullptr;
     std::shared_ptr<IDistributedHardwareSink> staticSink = nullptr;
     {
@@ -1867,23 +1866,31 @@ int32_t ComponentManager::UninitCompSink(DHType dhType, bool keepSAMonitor)
         }
     }
     int32_t ret = DH_FWK_SUCCESS;
-    bool needReleaseDlopenSink = false;
     if (staticSink != nullptr) {
-        // SR-5 (contracts §1/§2): per-DHType sink instance, no dlopen involved.
         sinkPtr = staticSink.get();
         DHLOGI("UninitCompSink: use per-type static sink, compType = %{public}#X.", dhType);
     } else if (staticHandler != nullptr) {
-        // Legacy 2-arg registration (CAMERA): keep the frozen global producer.
         sinkPtr = GetSinkHardwareHandler();
         DHLOGI("UninitCompSink: use legacy global sink producer, compType = %{public}#X.", dhType);
     } else {
-        // Secondary fallback only: dynamic library path when no static entry exists.
         ret = ComponentLoader::GetInstance().GetSink(dhType, sinkPtr);
         needReleaseDlopenSink = true;
         if (ret != DH_FWK_SUCCESS) {
             DHLOGE("GetSinkPtr failed, compType = %{public}#X, ret = %{public}d.", dhType, ret);
             return ret;
         }
+    }
+    return DH_FWK_SUCCESS;
+}
+
+int32_t ComponentManager::UninitCompSink(DHType dhType, bool keepSAMonitor)
+{
+    std::unique_lock<std::shared_mutex> lock(compSinkMutex_);
+    IDistributedHardwareSink *sinkPtr = nullptr;
+    bool needReleaseDlopenSink = false;
+    int32_t ret = ResolveSinkPtr(dhType, sinkPtr, needReleaseDlopenSink);
+    if (ret != DH_FWK_SUCCESS) {
+        return ret;
     }
     if (sinkPtr == nullptr) {
         DHLOGE("sinkPtr is null, compType = %{public}#X.", dhType);

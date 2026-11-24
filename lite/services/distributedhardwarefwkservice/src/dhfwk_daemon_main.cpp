@@ -85,25 +85,26 @@ using namespace OHOS::DistributedHardware;
 //     camera handler singleton is process-lifetime, so the wrapper uses a
 //     no-op deleter, matching C1 "UnregisterStaticSink never destroys").
 #else
-// Weak reference stub period (TASK-2): undefined weak reference at GLOBAL
-// scope, on purpose:
-// 1. Inside namespace OHOS::DistributedHardware it would collide with the
-//    frozen extern "C" IDistributedHardwareSink* GetSinkHardwareHandler()
-//    producer declared by idistributed_hardware_sink.h (same name/scope,
-//    differing only in return type — not overloadable).
-// 2. As a real declaration in the global scope it HIDES the namespace-scoped
-//    extern "C" name imported by the using-directive above at the unqualified
-//    call site ([namespace.udir]: real declarations hide directive imports).
-// The daemon checks the weak address before calling; this branch is compiled
-// out since TASK-5 (DHFWK_LITE_CAMERA_SINK_SDK enabled in the lite daemon
-// target) and kept only for stub-period rebuilds.
-// Coordination note RESOLVED (TASK-5, contracts C1 v1.1): the camera side
-// exports ONLY the fwk-frozen extern "C" symbols -- GetSinkHardwareHandler()
-// (sink SDK lite, idistributed_hardware_sink.h:113) and GetHardwareHandler()
-// (operator handler lite, ihardware_handler.h:49); no same-name C++ overload
-// exists. The enabled call site wraps GetHardwareHandler() for
-// RegisterStaticSink(DHType::CAMERA, handler) -- semantics and the frozen
-// anchor log unchanged.
+/* Weak reference stub period (TASK-2): undefined weak reference at GLOBAL
+ * scope, on purpose:
+ * 1. Inside namespace OHOS::DistributedHardware it would collide with the
+ *    frozen extern "C" IDistributedHardwareSink* GetSinkHardwareHandler()
+ *    producer declared by idistributed_hardware_sink.h (same name/scope,
+ *    differing only in return type - not overloadable).
+ * 2. As a real declaration in the global scope it HIDES the namespace-scoped
+ *    extern "C" name imported by the using-directive above at the unqualified
+ *    call site ([namespace.udir]: real declarations hide directive imports).
+ * The daemon checks the weak address before calling; this branch is compiled
+ * out since TASK-5 (DHFWK_LITE_CAMERA_SINK_SDK enabled in the lite daemon
+ * target) and kept only for stub-period rebuilds.
+ * Coordination note RESOLVED (TASK-5, contracts C1 v1.1): the camera side
+ * exports ONLY the fwk-frozen extern "C" symbols -- GetSinkHardwareHandler()
+ * (sink SDK lite, idistributed_hardware_sink.h:113) and GetHardwareHandler()
+ * (operator handler lite, ihardware_handler.h:49); no same-name C++ overload
+ * exists. The enabled call site wraps GetHardwareHandler() for
+ * RegisterStaticSink(DHType::CAMERA, handler) -- semantics and the frozen
+ * anchor log unchanged.
+ */
 __attribute__((weak)) std::shared_ptr<OHOS::DistributedHardware::IHardwareHandler> GetSinkHardwareHandler();
 #endif
 
@@ -296,8 +297,14 @@ using namespace OHOS::DistributedHardware;
 
 int main()
 {
-    signal(SIGTERM, SignalHandler);
-    signal(SIGINT, SignalHandler);
+    void (*prevSigTerm)(int) = signal(SIGTERM, SignalHandler);
+    if (prevSigTerm == SIG_ERR) {
+        DHLOGE("dhfwk_daemon: signal(SIGTERM) failed");
+    }
+    void (*prevSigInt)(int) = signal(SIGINT, SignalHandler);
+    if (prevSigInt == SIG_ERR) {
+        DHLOGE("dhfwk_daemon: signal(SIGINT) failed");
+    }
 
     DHLOGI("dhfwk_daemon: starting");
 
@@ -323,7 +330,6 @@ int main()
         return 1;
     }
     DHLOGI("dhfwk_daemon: Initialize done");
-
 
     // lite: the DM softbus listener does not register the node-state callback,
     // so the daemon self-registers (softbus -> OnDeviceOnline bridge).

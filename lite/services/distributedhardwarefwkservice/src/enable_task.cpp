@@ -79,7 +79,6 @@ void EnableTask::DoTaskInner()
 
 int32_t EnableTask::RegisterHardware()
 {
-
     int32_t ret = DH_FWK_SUCCESS;
 
     ret = DoAutoEnable();

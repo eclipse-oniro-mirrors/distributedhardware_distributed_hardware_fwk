@@ -23,6 +23,10 @@
 #include "device_type.h"
 #include "idistributed_hardware_sink.h"
 
+namespace {
+constexpr uint32_t TEST_SLEEP_SECONDS = 3;
+}
+
 // Weak stub definition (stub period, TASK-2): libdistributedhardwarefwksvr.so
 // references the frozen extern "C" sink-instance producer
 // GetSinkHardwareHandler() (idistributed_hardware_sink.h) from
@@ -42,7 +46,6 @@ int main()
 
     auto &factory = OHOS::DistributedHardware::DistributedHardwareManagerFactory::GetInstance();
     bool result = factory.InitLocalDevInfo();
-
     if (result) {
         DHLOGI("========== dhfwk_test: InitLocalDevInfo SUCCESS ==========");
     } else {
@@ -57,7 +60,7 @@ int main()
         }
     }
 
-    sleep(3);
+    sleep(TEST_SLEEP_SECONDS);
     DHLOGI("========== dhfwk_test: VerifyEnd ==========");
     return result ? 0 : 1;
 }

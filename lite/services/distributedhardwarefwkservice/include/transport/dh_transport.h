@@ -51,6 +51,8 @@ private:
     std::string GetRemoteNetworkIdBySocketId(int32_t socketId);
     void ClearDeviceSocketOpened(const std::string &remoteDevId);
     void HandleReceiveMessage(const std::string &payload, const std::string &remoteNeworkId);
+    void ProcessFullCapsRsp(std::shared_ptr<DHCommTool> &dhCommToolSPtr,
+        std::shared_ptr<CommMsg> &commMsg, const std::string &remoteNeworkId);
     bool CheckCalleeAclRight(const std::shared_ptr<CommMsg> commMsg);
     bool GetForegroundUserInfo(int32_t targetUserId, int32_t &userId, std::string &accountId);
 
