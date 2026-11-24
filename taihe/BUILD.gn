@@ -31,6 +31,7 @@ copy_taihe_idl("hardware_taihe_idl") {
 ohos_taihe("run_hardware_taihe") {
   taihe_generated_file_path = "$taihe_generated_file_path"
   deps = [ ":hardware_taihe_idl" ]
+  use_ats = true
   outputs = [
     "$taihe_generated_file_path/src/ohos.distributedHardware.hardwareManager.ani.cpp",
     "$taihe_generated_file_path/src/ohos.distributedHardware.hardwareManager.abi.c",
@@ -85,7 +86,7 @@ taihe_shared_library("hardware_taihe") {
 generate_static_abc("hardware_taihe_abc") {
   base_url = "$taihe_generated_file_path"
   files = [
-    "$taihe_generated_file_path/@ohos.distributedHardware.hardwareManager.ets",
+    "$taihe_generated_file_path/@ohos.distributedHardware.hardwareManager.ats",
   ]
   is_boot_abc = "True"
   device_dst_file = "/system/framework/hardware_taihe_abc.abc"
