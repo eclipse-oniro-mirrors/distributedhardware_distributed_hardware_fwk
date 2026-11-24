@@ -86,6 +86,22 @@ static void T22Check(bool cond, const char *msg)
 
 namespace {
 constexpr uint32_t LATE_FLAG_DELAY_SEC = 2;
+constexpr uint32_t GATE_MAX_PROBES = 15;
+constexpr uint32_t READY_AFTER_3S_FALSE_TIMES = 3;
+constexpr uint32_t READY_AFTER_3S_TOTAL_PROBES = 4;
+constexpr uint32_t READY_AFTER_3S_TOTAL_STEPS = 3;
+constexpr uint32_t IMMEDIATE_PROBE_COUNT = 1;
+constexpr uint32_t WRAP_PRESENT_TIMEOUT_PROBES = 3;
+constexpr uint32_t WRAP_INTERVAL_1S = 1;
+constexpr uint32_t WRAP_LATE_TIMEOUT_PROBES = 10;
+constexpr uint32_t WRAP_LATE_MIN_PROBES = 2;
+constexpr uint32_t WRAP_LATE_MAX_PROBES = 4;
+constexpr uint32_t WRAP_ABSENT_TIMEOUT_PROBES = 2;
+constexpr uint32_t WRAP_ABSENT_MIN_ELAPSED = 1;
+constexpr uint32_t WRAP_ABSENT_MAX_ELAPSED = 4;
+constexpr uint32_t WRAP_PRESENT_MAX_ELAPSED = 1;
+constexpr uint32_t PROD_EXPECTED_TIMEOUT_SEC = 15;
+constexpr uint32_t PROD_EXPECTED_INTERVAL_SEC = 1;
 // Stub probe: returns false for the first `falseTimes` calls, then true.
 struct TimedProbe {
     uint32_t falseTimes;
@@ -123,22 +139,22 @@ void TestCoreImmediateReady()
     LogMsg("-- branch 1: immediate ready (HAL flag already present, e.g. kill-relaunch)");
     TimedProbe probe {0};
     StepCounter step;
-    ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
+    ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), GATE_MAX_PROBES);
     T22Check(r.ready, "core: immediate ready -> ready=true");
-    T22Check(r.probes == 1, "core: immediate ready consumes exactly 1 probe");
+    T22Check(r.probes == IMMEDIATE_PROBE_COUNT, "core: immediate ready consumes exactly 1 probe");
     T22Check(step.calls == 0, "core: immediate ready performs no wait step");
-    T22Check(probe.calls == 1, "core: stub probe called exactly once");
+    T22Check(probe.calls == IMMEDIATE_PROBE_COUNT, "core: stub probe called exactly once");
 }
 
 void TestCoreReadyAfter3s()
 {
     LogMsg("-- branch 2: ready after 3s (20bB boot timeline: HAL window overlaps query window)");
-    TimedProbe probe {3};
+    TimedProbe probe {READY_AFTER_3S_FALSE_TIMES};
     StepCounter step;
-    ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
+    ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), GATE_MAX_PROBES);
     T22Check(r.ready, "core: ready after 3 failed probes -> ready=true");
-    T22Check(r.probes == 4, "core: ready after 3s consumes 4 probes (t=0..3s)");
-    T22Check(step.calls == 3, "core: ready after 3s performs 3 wait steps");
+    T22Check(r.probes == READY_AFTER_3S_TOTAL_PROBES, "core: ready after 3s consumes 4 probes (t=0..3s)");
+    T22Check(step.calls == READY_AFTER_3S_TOTAL_STEPS, "core: ready after 3s performs 3 wait steps");
 }
 
 void TestCoreTimeout()
@@ -146,20 +162,20 @@ void TestCoreTimeout()
     LogMsg("-- branch 3: timeout (flag never appears -> fail-open, EX2 degradation retained)");
     TimedProbe probe {UINT32_MAX};
     StepCounter step;
-    ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
+    ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), GATE_MAX_PROBES);
     T22Check(!r.ready, "core: never ready -> ready=false (fail-open signal)");
-    T22Check(r.probes == 15, "core: timeout exhausts all 15 probes");
-    T22Check(step.calls == 15, "core: timeout performs 15 wait steps (cap ~15s)");
+    T22Check(r.probes == GATE_MAX_PROBES, "core: timeout exhausts all 15 probes");
+    T22Check(step.calls == GATE_MAX_PROBES, "core: timeout performs 15 wait steps (cap ~15s)");
 }
 
 void TestCoreDegenerateArgs()
 {
     LogMsg("-- core degenerate args: null probe / maxProbes=0 must not crash or hang");
     StepCounter step;
-    ReadyGateResult r1 = WaitForReadyGate(nullptr, std::ref(step), 15);
+    ReadyGateResult r1 = WaitForReadyGate(nullptr, std::ref(step), GATE_MAX_PROBES);
     T22Check(!r1.ready && r1.probes == 0, "core: null probe -> not ready, 0 probes");
     TimedProbe probe {0};
-    ReadyGateResult r2 = WaitForReadyGate(std::ref(probe), nullptr, 15);
+    ReadyGateResult r2 = WaitForReadyGate(std::ref(probe), nullptr, GATE_MAX_PROBES);
     T22Check(!r2.ready && r2.probes == 0, "core: null waitStep -> not ready, 0 probes (no UB)");
     ReadyGateResult r3 = WaitForReadyGate(std::ref(probe), std::ref(step), 0);
     T22Check(!r3.ready && r3.probes == 0, "core: maxProbes=0 -> not ready, 0 probes");
@@ -175,10 +191,10 @@ void TestWrapperFlagPresent()
         LogMsg("wrapper: time() failed, using 0 baseline");
         t0 = 0;
     }
-    ReadyGateResult r = WaitCameraHalReady(3, 1, path.c_str());
+    ReadyGateResult r = WaitCameraHalReady(WRAP_PRESENT_TIMEOUT_PROBES, WRAP_INTERVAL_1S, path.c_str());
     time_t elapsed = time(nullptr) - t0;
-    T22Check(r.ready && r.probes == 1, "wrapper: existing flag -> ready on first probe");
-    T22Check(elapsed <= 1, "wrapper: no sleep when flag present");
+    T22Check(r.ready && r.probes == IMMEDIATE_PROBE_COUNT, "wrapper: existing flag -> ready on first probe");
+    T22Check(elapsed <= WRAP_PRESENT_MAX_ELAPSED, "wrapper: no sleep when flag present");
     unlink(path.c_str());
 }
 
@@ -194,9 +210,10 @@ void TestWrapperFlagLate()
         _exit(0);
     }
     T22Check(pid > 0, "wrapper: fork child for late-flag timing");
-    ReadyGateResult r = WaitCameraHalReady(10, 1, path.c_str());
+    ReadyGateResult r = WaitCameraHalReady(WRAP_LATE_TIMEOUT_PROBES, WRAP_INTERVAL_1S, path.c_str());
     T22Check(r.ready, "wrapper: late-appearing flag -> ready=true");
-    T22Check(r.probes >= 2 && r.probes <= 4, "wrapper: detected within probes 2..4 (~2s)");
+    T22Check(r.probes >= WRAP_LATE_MIN_PROBES && r.probes <= WRAP_LATE_MAX_PROBES,
+        "wrapper: detected within probes 2..4 (~2s)");
     int status = 0;
     if (pid > 0) {
         waitpid(pid, &status, 0);
@@ -214,12 +231,13 @@ void TestWrapperTimeout()
         LogMsg("wrapper: time() failed, using 0 baseline");
         t0 = 0;
     }
-    ReadyGateResult r = WaitCameraHalReady(2, 1, path.c_str());
+    ReadyGateResult r = WaitCameraHalReady(WRAP_ABSENT_TIMEOUT_PROBES, WRAP_INTERVAL_1S, path.c_str());
     time_t elapsed = time(nullptr) - t0;
     T22Check(!r.ready, "wrapper: absent flag -> not ready (fail-open)");
-    T22Check(r.probes == 2, "wrapper: timeout=2/interval=1 -> 2 probes");
-    T22Check(elapsed >= 1 && elapsed <= 4, "wrapper: wall time honors interval (~2s)");
-    ReadyGateResult rNull = WaitCameraHalReady(2, 1, nullptr);
+    T22Check(r.probes == WRAP_ABSENT_TIMEOUT_PROBES, "wrapper: timeout=2/interval=1 -> 2 probes");
+    T22Check(elapsed >= WRAP_ABSENT_MIN_ELAPSED && elapsed <= WRAP_ABSENT_MAX_ELAPSED,
+        "wrapper: wall time honors interval (~2s)");
+    ReadyGateResult rNull = WaitCameraHalReady(WRAP_ABSENT_TIMEOUT_PROBES, WRAP_INTERVAL_1S, nullptr);
     T22Check(!rNull.ready && rNull.probes == 0, "wrapper: null flagPath -> safe, 0 probes");
 }
 
@@ -228,8 +246,8 @@ void TestProductionConstants()
     LogMsg("-- production constants: cross-repo readiness contract pinning");
     T22Check(strcmp(CAMERA_HAL_READY_FLAG, "/dev/.camera_hal_inited") == 0,
         "flag path verbatim == camera_lite CAMERA_HAL_INIT_FLAG (camera_service.cpp:28 @af78fdc)");
-    T22Check(CAMERA_HAL_READY_TIMEOUT_SEC == 15, "timeout cap = 15s (TASK-22 target)");
-    T22Check(CAMERA_HAL_READY_INTERVAL_SEC == 1, "interval = 1s (EX2 cadence)");
+    T22Check(CAMERA_HAL_READY_TIMEOUT_SEC == PROD_EXPECTED_TIMEOUT_SEC, "timeout cap = 15s (TASK-22 target)");
+    T22Check(CAMERA_HAL_READY_INTERVAL_SEC == PROD_EXPECTED_INTERVAL_SEC, "interval = 1s (EX2 cadence)");
     ReadyGateResult r = WaitCameraHalReady(0, 0, "/tmp/task22_nonexistent_flag_xyz");
     T22Check(!r.ready && r.probes >= 1, "wrapper: degenerate 0/0 args -> >=1 probe, no hang");
 }
