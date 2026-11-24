@@ -1,0 +1,63 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+  import("//build/lite/config/component/lite_component.gni")
+
+  # lite: FIPS 180-4 SHA-256 unit test (host-runnable, zero deps).
+  # Same sources also compile standalone on host:
+  #   g++ -std=c++17 utils/sha256.cpp utils/test/sha256_test.cpp
+  executable("sha256_test") {
+    testonly = true
+
+    sources = [
+      "../sha256.cpp",
+      "sha256_test.cpp",
+    ]
+
+    include_dirs = [ "../include" ]
+
+    configs -= [ "//build/lite/config:language_cpp" ]
+    cflags_cc = [ "-std=c++17" ]
+  }
+
+  # lite: softbus node-key provider unit test (TASK-13). Host-runnable via
+  # link-time stub injection of GetNodeKeyInfo (no softbus dep needed):
+  #   g++ -std=c++17 -I utils -I common/utils/include \
+  #       -I <dsoftbus>/interfaces/kits/bus_center -I <dsoftbus>/interfaces/kits/common \
+  #       utils/node_key_provider.cpp utils/test/node_key_provider_test.cpp
+  executable("node_key_provider_test") {
+    testonly = true
+
+    sources = [
+      "../node_key_provider.cpp",
+      "node_key_provider_test.cpp",
+    ]
+
+    include_dirs = [
+      "../include",
+      "../../common/utils/include",
+      "//foundation/communication/dsoftbus/interfaces/kits/bus_center",
+      "//foundation/communication/dsoftbus/interfaces/kits/common",
+    ]
+
+    configs -= [ "//build/lite/config:language_cpp" ]
+    cflags_cc = [ "-std=c++17" ]
+  }
+
+  group("utils_test") {
+    testonly = true
+    deps = [
+      ":node_key_provider_test",
+      ":sha256_test",
+    ]
+  }

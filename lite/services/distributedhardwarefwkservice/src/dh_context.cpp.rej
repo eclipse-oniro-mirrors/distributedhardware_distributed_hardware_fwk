@@ -1,0 +1,19 @@
+diff a/lite/services/distributedhardwarefwkservice/src/dh_context.cpp b/lite/services/distributedhardwarefwkservice/src/dh_context.cpp	(rejected hunks)
+@@ -84,17 +67,6 @@ void DHContext::CommonEventHandler::RemoveTask(const std::string &name)
+ {
+     (void)name;
+ }
+-#else
+-bool DHContext::CommonEventHandler::PostTask(const Callback &callback, const std::string &name, int64_t delayTime)
+-{
+-    return AppExecFwk::EventHandler::PostTask(callback, name, delayTime);
+-}
+-
+-void DHContext::CommonEventHandler::RemoveTask(const std::string &name)
+-{
+-    AppExecFwk::EventHandler::RemoveTask(name);
+-}
+-#endif
+ 
+ const DeviceInfo& DHContext::GetDeviceInfo()
+ {

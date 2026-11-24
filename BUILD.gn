@@ -1,0 +1,57 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Component root entry (product wiring, device_manager/dsoftbus form): the
+# preloader-generated ohos_part wrapper references :distributed_hardware_fwk
+# (bundle.json build.sub_component), and this file routes to the lite subtree
+# or the standard target set. Adding standard-only deep targets directly to
+# bundle.json sub_component breaks the small-system gn graph (DHardware_UI/
+# napi/av_transport), hence the routing group (TASK-1 escalation 2, D-VENDOR-1).
+
+if (defined(ohos_lite)) {
+  import("//build/lite/config/component/lite_component.gni")
+
+  if (ohos_kernel_type == "linux") {
+    lite_component("distributed_hardware_fwk") {
+      features = [
+        "//foundation/distributedhardware/distributed_hardware_fwk/lite/services/distributedhardwarefwkservice:distributedhardwarefwksvr",
+        "//foundation/distributedhardware/distributed_hardware_fwk/lite/services/distributedhardwarefwkservice:dhfwk_daemon_binary_install",
+        "//foundation/distributedhardware/distributed_hardware_fwk/lite/utils:distributedhardwareutils",
+      ]
+    }
+  } else {
+    lite_component("distributed_hardware_fwk") {
+      features = [
+        "//foundation/distributedhardware/distributed_hardware_fwk/lite/services/distributedhardwarefwkservice:distributedhardwarefwksvr",
+        "//foundation/distributedhardware/distributed_hardware_fwk/lite/utils:distributedhardwareutils",
+      ]
+    }
+  }
+} else {
+  group("distributed_hardware_fwk") {
+    deps = [
+      "application:DHardware_UI",
+      "av_transport/av_trans_engine/av_receiver:distributed_av_receiver",
+      "av_transport/av_trans_engine/av_sender:distributed_av_sender",
+      "av_transport/av_trans_handler/histreamer_ability_querier:histreamer_ability_querier",
+      "av_transport/framework:distributed_av_pipeline_fwk",
+      "interfaces/inner_kits:libdhfwk_sdk",
+      "interfaces/kits/napi:hardwaremanager",
+      "sa_profile:dhardware.cfg",
+      "sa_profile:dhfwk_sa_profile",
+      "services/distributedhardwarefwkservice:distributedhardwarefwksvr",
+      "taihe:distributed_hardware_taihe",
+      "utils:distributedhardwareutils",
+    ]
+  }
+}

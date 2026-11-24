@@ -1,0 +1,261 @@
+diff a/lite/services/distributedhardwarefwkservice/src/component_manager.cpp b/lite/services/distributedhardwarefwkservice/src/component_manager.cpp	(rejected hunks)
+@@ -251,21 +190,6 @@ void ComponentManager::UnregisterStaticSink(DHType dhType)
+     DHLOGI("UnregisterStaticSink done, dhType = %{public}#X.", dhType);
+ }
+ 
+-#ifndef LITE_DEVICE
+-void ComponentManager::StopPrivacy()
+-{
+-    // stop privacy
+-    if (cameraCompPrivacy_ != nullptr && cameraCompPrivacy_->GetPageFlag()) {
+-        cameraCompPrivacy_->StopPrivacePage("camera");
+-        cameraCompPrivacy_->SetPageFlagFalse();
+-    }
+-
+-    if (audioCompPrivacy_ != nullptr  && audioCompPrivacy_->GetPageFlag()) {
+-        audioCompPrivacy_->StopPrivacePage("mic");
+-        audioCompPrivacy_->SetPageFlagFalse();
+-    }
+-}
+-#endif
+ 
+ void ComponentManager::UnInitDHCommTool()
+ {
+@@ -538,158 +435,31 @@ int32_t ComponentManager::Disable(const std::string &networkId, const std::strin
+ 
+ DHType ComponentManager::GetDHType(const std::string &uuid, const std::string &dhId) const
+ {
+-#ifndef LITE_DEVICE
+-    std::shared_ptr<CapabilityInfo> capability = nullptr;
+-    auto ret = CapabilityInfoManager::GetInstance()->GetCapability(GetDeviceIdByUUID(uuid), dhId, capability);
+-    if ((ret == DH_FWK_SUCCESS) && (capability != nullptr)) {
+-        return capability->GetDHType();
+-    }
+-    DHLOGE("get dhType failed, uuid = %{public}s, dhId = %{public}s", GetAnonyString(uuid).c_str(),
+-        GetAnonyString(dhId).c_str());
+-    return DHType::UNKNOWN;
+-#else
+     return DHType::UNKNOWN;
+-#endif
+ }
+ 
+ int32_t ComponentManager::GetEnableCapParam(const std::string &networkId, const std::string &uuid,
+     DHType dhType, EnableParam &param, std::shared_ptr<CapabilityInfo> capability)
+ {
+-#ifndef LITE_DEVICE
+-    if (!IsIdLengthValid(networkId) || !IsIdLengthValid(uuid)) {
+-        return ERR_DH_FWK_PARA_INVALID;
+-    }
+-    DeviceInfo sourceDeviceInfo = GetLocalDeviceInfo();
+-    std::vector<std::shared_ptr<CapabilityInfo>> sourceCapInfos;
+-    std::string sourceDHId;
+-    CapabilityInfoManager::GetInstance()->GetCapabilitiesByDeviceId(sourceDeviceInfo.deviceId, sourceCapInfos);
+-    for (const auto &capInfo : sourceCapInfos) {
+-        if (dhType == capInfo->GetDHType()) {
+-            param.sourceAttrs = capInfo->GetDHAttrs();
+-            sourceDHId = capInfo->GetDHId();
+-        }
+-    }
+-    std::string sourceVersion("");
+-    auto ret = GetVersion(sourceDeviceInfo.uuid, dhType, sourceVersion, false);
+-    if (ret != DH_FWK_SUCCESS) {
+-        DHLOGE("Get source version failed.");
+-        return ERR_DH_FWK_COMPONENT_GET_SINK_VERSION_FAILED;
+-    }
+-    param.sourceVersion = sourceVersion;
+-
+-    param.sinkAttrs = capability->GetDHAttrs();
+-    std::string sinkVersion("");
+-    ret = GetVersion(uuid, dhType, sinkVersion, true);
+-    if (ret != DH_FWK_SUCCESS) {
+-        DHLOGE("Get sink version failed.");
+-        // If Version DB not sync, try get sink version from meta info
+-        std::shared_ptr<MetaCapabilityInfo> metaCapPtr = nullptr;
+-        ret = MetaInfoManager::GetInstance()->GetMetaCapInfo(DHContext::GetInstance().GetUdidHashIdByUUID(uuid),
+-            capability->GetDHId(), metaCapPtr);
+-        if ((ret == DH_FWK_SUCCESS) && (metaCapPtr != nullptr)) {
+-            sinkVersion = metaCapPtr->GetSinkVersion();
+-        } else {
+-            return ERR_DH_FWK_COMPONENT_GET_SINK_VERSION_FAILED;
+-        }
+-    }
+-    param.sinkVersion = sinkVersion;
+-    param.subtype = capability->GetDHSubtype();
+-    DHLOGI("GetEnableCapParam success. dhType = %{public}#X, sink uuid =%{public}s,"
+-        "sinVersion = %{public}s, source uuid =%{public}s, source dhId = %{public}s, sourceVersion = %{public}s,"
+-        "subtype = %{public}s", dhType, GetAnonyString(uuid).c_str(),
+-        param.sinkVersion.c_str(), GetAnonyString(sourceDeviceInfo.uuid).c_str(), GetAnonyString(sourceDHId).c_str(),
+-        param.sourceVersion.c_str(), param.subtype.c_str());
+-    return DH_FWK_SUCCESS;
+-#else
+     return ERR_DH_FWK_TYPE_NOT_EXIST;
+-#endif
+ }
+ 
+ int32_t ComponentManager::GetEnableMetaParam(const std::string &networkId, const std::string &uuid,
+     DHType dhType, EnableParam &param, std::shared_ptr<MetaCapabilityInfo> metaCapPtr)
+ {
+-#ifndef LITE_DEVICE
+-    if (!IsIdLengthValid(networkId) || !IsIdLengthValid(uuid)) {
+-        return ERR_DH_FWK_PARA_INVALID;
+-    }
+-    DeviceInfo sourceDeviceInfo = GetLocalDeviceInfo();
+-    std::vector<std::shared_ptr<MetaCapabilityInfo>> sourceMetaInfos;
+-    std::string sourceDHId;
+-    MetaInfoManager::GetInstance()->GetMetaCapInfosByUdidHash(sourceDeviceInfo.udidHash, sourceMetaInfos);
+-    for (const auto &metaInfo : sourceMetaInfos) {
+-        if (dhType == metaInfo->GetDHType()) {
+-            param.sourceAttrs = metaInfo->GetDHAttrs();
+-            sourceDHId = metaInfo->GetDHId();
+-        }
+-    }
+-    std::string sourceVersion("");
+-    auto ret = GetVersion(sourceDeviceInfo.uuid, dhType, sourceVersion, false);
+-    if (ret != DH_FWK_SUCCESS) {
+-        DHLOGE("Get source version failed.");
+-        return ERR_DH_FWK_COMPONENT_GET_SINK_VERSION_FAILED;
+-    }
+-    param.sourceVersion = sourceVersion;
+-
+-    param.sinkAttrs = metaCapPtr->GetDHAttrs();
+-    param.sinkVersion = metaCapPtr->GetSinkVersion();
+-    param.subtype = metaCapPtr->GetDHSubtype();
+-    DHLOGI("GetEnableCapParam success. dhType = %{public}#X, sink uuid =%{public}s,"
+-        "sinVersion = %{public}s, source uuid =%{public}s, source dhId = %{public}s, sourceVersion = %{public}s,"
+-        "subtype = %{public}s", dhType, GetAnonyString(uuid).c_str(),
+-        param.sinkVersion.c_str(), GetAnonyString(sourceDeviceInfo.uuid).c_str(), GetAnonyString(sourceDHId).c_str(),
+-        param.sourceVersion.c_str(), param.subtype.c_str());
+-    return DH_FWK_SUCCESS;
+-#else
+     return ERR_DH_FWK_TYPE_NOT_EXIST;
+-#endif
+ }
+ 
+ int32_t ComponentManager::GetCapParam(const std::string &uuid, const std::string &dhId,
+     std::shared_ptr<CapabilityInfo> &capability)
+ {
+-#ifndef LITE_DEVICE
+-    if (!IsIdLengthValid(uuid) || !IsIdLengthValid(dhId)) {
+-        return ERR_DH_FWK_PARA_INVALID;
+-    }
+-    std::string deviceId = GetDeviceIdByUUID(uuid);
+-    auto ret = CapabilityInfoManager::GetInstance()->GetCapability(deviceId, dhId, capability);
+-    if ((ret == DH_FWK_SUCCESS) && (capability != nullptr)) {
+-        DHLOGI("GetCapability success, deviceId: %{public}s, uuid: %{public}s, dhId: %{public}s, ret: %{public}d",
+-            GetAnonyString(deviceId).c_str(), GetAnonyString(uuid).c_str(), GetAnonyString(dhId).c_str(), ret);
+-        return ret;
+-    }
+-
+-    ret = LocalCapabilityInfoManager::GetInstance()->GetCapability(deviceId, dhId, capability);
+-    if ((ret == DH_FWK_SUCCESS) && (capability != nullptr)) {
+-        DHLOGI("Local GetCaps success, deviceId: %{public}s, uuid: %{public}s, dhId: %{public}s, ret: %{public}d",
+-            GetAnonyString(deviceId).c_str(), GetAnonyString(uuid).c_str(), GetAnonyString(dhId).c_str(), ret);
+-        return ret;
+-    }
+-
+-    return ret;
+-#else
+     return ERR_DH_FWK_TYPE_NOT_EXIST;
+-#endif
+ }
+ 
+ int32_t ComponentManager::GetMetaParam(const std::string &uuid, const std::string &dhId,
+     std::shared_ptr<MetaCapabilityInfo> &metaCapPtr)
+ {
+-#ifndef LITE_DEVICE
+-    if (!IsIdLengthValid(uuid) || !IsIdLengthValid(dhId)) {
+-        return ERR_DH_FWK_PARA_INVALID;
+-    }
+-    auto ret = MetaInfoManager::GetInstance()->GetMetaCapInfo(DHContext::GetInstance().GetUdidHashIdByUUID(uuid),
+-        dhId, metaCapPtr);
+-    if ((ret == DH_FWK_SUCCESS) && (metaCapPtr != nullptr)) {
+-        DHLOGI("GetCapability success, uuid =%{public}s, dhId = %{public}s, errCode = %{public}d",
+-            GetAnonyString(uuid).c_str(), GetAnonyString(dhId).c_str(), ret);
+-        return ret;
+-    }
+-    return ret;
+-#else
+     return ERR_DH_FWK_TYPE_NOT_EXIST;
+-#endif
+ }
+ 
+ int32_t ComponentManager::GetEnableParam(const std::string &networkId, const std::string &uuid,
+@@ -825,11 +543,7 @@ void ComponentManager::DumpLoadedCompsink(std::set<DHType> &compSinkType)
+ 
+ void ComponentManager::Recover(DHType dhType)
+ {
+-#ifdef LITE_DEVICE
+     std::thread([this, dhType]() { this->DoRecover(dhType); }).detach();
+-#else
+-    ffrt::submit([this, dhType]() { this->DoRecover(dhType); });
+-#endif
+ }
+ 
+ void ComponentManager::DoRecover(DHType dhType)
+@@ -1302,11 +927,7 @@ if (dhCommToolPtr_ == nullptr) {
+         DHLOGE("DH communication tool ptr is null");
+         return;
+     }
+-#ifndef LITE_DEVICE
+-    dhCommToolPtr_->TriggerReqFullDHCaps(networkId);
+-#else
+     dhCommToolPtr_->GetAndSendLocalFullCaps(networkId, true);
+-#endif
+ }
+ 
+ void ComponentManager::SaveNeedRefreshTask(const TaskParam &taskParam)
+@@ -2781,38 +2260,6 @@ int32_t ComponentManager::EnableMetaSourceInternal(const std::string &networkId,
+ void ComponentManager::SyncRemoteDeviceInfoBySoftbus(const std::string &realNetworkId, EnableStep enableStep,
+     const sptr<IGetDhDescriptorsCallback> callback)
+ {
+-#ifndef LITE_DEVICE
+-    if (callback == nullptr) {
+-        DHLOGE("Param callback is null.");
+-        return;
+-    }
+-    std::lock_guard<std::mutex> lock(syncDeviceInfoMapMutex_);
+-    auto iter = syncDeviceInfoMap_.find(realNetworkId);
+-    if (iter != syncDeviceInfoMap_.end()) {
+-        iter->second.second.push_back(callback);
+-        DHLOGI("Add callback for existing request, networkId: %{public}s, total callbacks: %{public}zu",
+-            GetAnonyString(realNetworkId).c_str(), iter->second.second.size());
+-        return;
+-    }
+-    DHLOGI("Add new request, networkId: %{public}s", GetAnonyString(realNetworkId).c_str());
+-    syncDeviceInfoMap_[realNetworkId] = {enableStep, {callback}};
+-    if (GetEventHandler() == nullptr) {
+-        DHLOGE("Can not get eventHandler");
+-        callback->OnError(realNetworkId, ERR_DH_FWK_POINTER_IS_NULL);
+-        syncDeviceInfoMap_.erase(realNetworkId);
+-        return;
+-    }
+-    std::shared_ptr<std::string> networkIdPtr = std::make_shared<std::string>(realNetworkId);
+-    AppExecFwk::InnerEvent::Pointer msgEvent = AppExecFwk::InnerEvent::Get(EVENT_DATA_SYNC_MANUAL, networkIdPtr);
+-    GetEventHandler()->SendEvent(msgEvent, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+-
+-    auto syncTimeoutTask = [this, realNetworkId]() {
+-        HandleSyncDataTimeout(realNetworkId);
+-    };
+-    std::string timeoutTaskId = realNetworkId + SYNC_TIMEOUT_TASK_NAME;
+-    DHLOGI("Post sync data timeout task");
+-    GetEventHandler()->PostTask(syncTimeoutTask, timeoutTaskId, SYNC_DATA_TIMEOUT_MS);
+-#endif
+ }
+ 
+ void ComponentManager::OnGetDescriptors(const std::string &realNetworkId, const std::vector<DHDescriptor> &descriptors)
+@@ -2919,15 +2359,6 @@ int32_t ComponentManager::AddAccessListener(const DHType dhType, int32_t &timeOu
+         return ERR_DH_FWK_PARA_INVALID;
+     }
+ 
+-#ifndef LITE_DEVICE
+-    sptr<IAccessListener> listener(new AccessListenerService());
+-    int32_t ret = dhSinkMap[dhType]->SetAccessListener(listener, timeOut, pkgName);
+-    if (ret != DH_FWK_SUCCESS) {
+-        DHLOGE("SetAccessListener failed for DHType=%{public}u, ret=%{public}d",
+-            (uint32_t)dhType, ret);
+-        return ret;
+-    }
+-#endif
+ 
+     std::lock_guard<std::mutex> lock(accessListenerMutex_);
+     auto key = std::make_pair(dhType, pkgName);

@@ -1,0 +1,238 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+  import("//build/lite/config/component/lite_component.gni")
+
+  # NOTE: distributedhardwarefwk.gni must NOT be imported here: its
+  # declare_args() references ${target_platform}, which is only declared in
+  # standard system builds (undefined identifier under lite gn). The path
+  # literals below mirror the gni values (same decision as utils/BUILD.gn,
+  # TASK-1).
+  _dhfwk_lite_path = "//foundation/distributedhardware/distributed_hardware_fwk/lite"
+
+  _lite_include_dirs = [
+    # --- lite shadow headers (take precedence over standard paths) ---
+
+    # --- fwk shim headers (TASK-1: refbase/iremote_broker/ffrt/ipc stubs) ---
+    "$_dhfwk_lite_path/common/utils/include",
+
+    # --- standard paths (shared headers without lite variants) ---
+    "include",
+    "include/accessmanager",
+    "include/componentloader",
+    "include/componentmanager",
+    "include/hdfoperate",
+    "include/hidumphelper",
+    "include/localhardwaremanager",
+    "include/publisher",
+    "include/resourcemanager",
+    "include/task",
+    "include/transport",
+    "include/utils",
+    "include/versionmanager",
+    "$_dhfwk_lite_path/common/log/include",
+    "$_dhfwk_lite_path/common/utils/include",
+    "$_dhfwk_lite_path/utils/include",
+
+    # --- external lite deps headers ---
+    "//base/hiviewdfx/hilog_lite/interfaces/native/innerkits",
+    "//foundation/communication/dsoftbus/interfaces/kits/bus_center",
+    "//foundation/communication/dsoftbus/interfaces/kits/common",
+    "//foundation/communication/dsoftbus/interfaces/kits/transport",
+    "//foundation/distributedhardware/device_manager/lite/common/include",
+    "//foundation/distributedhardware/device_manager/lite/interfaces/include",
+    "//third_party/bounds_checking_function/include",
+    "//third_party/zlib",
+  ]
+
+  _lite_defines = [
+    "LITE_DEVICE",
+    "HI_LOG_ENABLE",
+    "DH_LOG_TAG=\"dhfwksvr\"",
+    "LOG_DOMAIN=0xD004100",
+  ]
+
+  _lite_deps = [
+    "$_dhfwk_lite_path/utils:distributedhardwareutils",
+    "//base/hiviewdfx/hilog_lite/frameworks/featured:hilog_shared",
+    "//build/lite/config/component/cJSON:cjson_shared",
+    "//build/lite/config/component/zlib:zlib_shared",
+    "//foundation/communication/dsoftbus:dsoftbus",
+    "//foundation/distributedhardware/device_manager/lite/interfaces:devicemanagersdk",
+    "//third_party/bounds_checking_function:libsec_shared",
+  ]
+
+  shared_library("distributedhardwarefwksvr") {
+    include_dirs = _lite_include_dirs
+    defines = _lite_defines
+    deps = _lite_deps
+
+    sources = [
+      # --- lite tree (DD-2 single tree: copies/adaptations, this task) ---
+      "src/access_manager.cpp",
+      "src/camera_hal_ready_gate.cpp",
+      "src/component_disable.cpp",
+      "src/component_enable.cpp",
+      "src/component_loader.cpp",
+      "src/component_manager.cpp",
+      "src/component_monitor.cpp",
+      "src/dh_comm_tool.cpp",
+      "src/dh_context.cpp",
+      "src/dh_data_sync_trigger_listener.cpp",
+      "src/dh_timer.cpp",
+      "src/dh_transport.cpp",
+      "src/disable_task.cpp",
+      "src/distributed_hardware_manager.cpp",
+      "src/distributed_hardware_manager_factory.cpp",
+      "src/enable_task.cpp",
+      "src/exit_dfwk_task.cpp",
+      "src/hdf_operate.cpp",
+      "src/hidump_helper.cpp",
+      "src/local_hardware_manager.cpp",
+      "src/offline_task.cpp",
+      "src/online_task.cpp",
+      "src/plugin_listener_impl.cpp",
+      "src/task_executor.cpp",
+      "src/task_factory.cpp",
+
+      # --- shared sources (zero modification, dual-compiled; lite compat is
+      # --- supplied by the shadow headers + shim include dirs above) ---
+      "src/componentmanager/dh_state_listener.cpp",
+      "src/hidumphelper/enabled_comps_dump.cpp",
+      "src/publisher/publisher.cpp",
+      "src/publisher/publisher_item.cpp",
+      "src/resourcemanager/capability_info.cpp",
+      "src/resourcemanager/capability_utils.cpp",
+      "src/resourcemanager/meta_capability_info.cpp",
+      "src/resourcemanager/version_info.cpp",
+      "src/task/meta_disable_task.cpp",
+      "src/task/meta_enable_task.cpp",
+      "src/task/task.cpp",
+      "src/task/task_board.cpp",
+      "src/transport/dh_transport_obj.cpp",
+      "src/utils/dh_modem_context_ext.cpp",
+      "src/versionmanager/version_manager.cpp",
+    ]
+
+    # language_cpp pins -std=c++11; the shared headers (device_type.h inline
+    # variables) require C++17. The clang++ driver links the C++ runtime
+    # automatically (no manual -lstdc++, TASK-1 decision).
+    configs -= [ "//build/lite/config:language_cpp" ]
+    cflags_cc = [
+      "-fPIC",
+      "-std=c++17",
+    ]
+    ldflags = [ "-fPIC" ]
+  }
+
+  # contracts C3: /etc/distributedhardware/distributed_hardware_components_cfg.json
+  # (camera sink entry retained per BR1, source fields stripped per D2/DD-4).
+  # fs.yml packs $root_out_dir/etc into rootfs/etc.
+  copy("dhfwk_lite_config") {
+    sources = [ "config/distributed_hardware_components_cfg.json" ]
+    outputs = [ "$root_out_dir/etc/distributedhardware/{{source_file_part}}" ]
+  }
+
+  if (ohos_kernel_type == "linux") {
+    executable("dhfwk_test") {
+      include_dirs = _lite_include_dirs
+      defines = _lite_defines
+      deps = _lite_deps + [ ":distributedhardwarefwksvr" ]
+      sources = [ "src/dhfwk_test_main.cpp" ]
+
+      configs -= [ "//build/lite/config:language_cpp" ]
+      cflags_cc = [
+        "-fPIE",
+        "-std=c++17",
+      ]
+      ldflags = [
+        "-fPIE",
+        "-pie",
+      ]
+    }
+
+    executable("dhfwk_daemon") {
+      include_dirs = _lite_include_dirs
+
+      # TASK-5 link closure (contracts C1 v1.1): DHFWK_LITE_CAMERA_SINK_SDK
+      # retires the weak GetSinkHardwareHandler stub branch in
+      # dhfwk_daemon_main.cpp; the camera lite deps supply the frozen
+      # extern "C" producers -- libdistributed_camera_sink_sdk.so defines
+      # GetSinkHardwareHandler() (consumed by InitCompSink inside
+      # libdistributedhardwarefwksvr.so) and libdistributed_camera_handler.so
+      # defines GetHardwareHandler() (wrapped by the daemon main call site for
+      # RegisterStaticSink). No camera include dirs are needed here: both
+      # producers are declared by fwk's own frozen headers
+      # (idistributed_hardware_sink.h / ihardware_handler.h, already on the
+      # include path).
+      defines = _lite_defines + [ "DHFWK_LITE_CAMERA_SINK_SDK" ]
+      deps = _lite_deps + [
+        ":distributedhardwarefwksvr",
+        "//foundation/distributedhardware/distributed_camera/interfaces/inner_kits/native_cpp/camera_sink:distributed_camera_sink_sdk",
+        "//foundation/distributedhardware/distributed_camera/services/cameraservice/cameraoperator/handler:distributed_camera_handler",
+      ]
+      sources = [ "src/dhfwk_daemon_main.cpp" ]
+
+      configs -= [ "//build/lite/config:language_cpp" ]
+      cflags_cc = [
+        "-fPIE",
+        "-std=c++17",
+      ]
+      ldflags = [
+        "-fPIE",
+        "-pie",
+        "-ldl",
+      ]
+    }
+
+    # Unified-build placement gap: plain lite shared_library() links to
+    # $root_out_dir root, which fs.yml does NOT pack (it packs usr/lib, libs,
+    # bin, etc, system). Install the runtime SO closure (fwk svr + utils) into
+    # usr/lib so fs.yml packs it into rootfs/usr/lib on image repack.
+    # (Escalated: the same gap affects any plain shared_library lite target,
+    # e.g. utils — root cause for master/TASK-8 image integration.)
+    copy("dhfwk_lite_libs_install") {
+      sources = [
+        "$root_out_dir/libdistributedhardwarefwksvr.so",
+        "$root_out_dir/libdistributedhardwareutils.so",
+      ]
+      outputs = [ "$root_out_dir/usr/lib/{{source_file_part}}" ]
+      deps = [
+        ":distributedhardwarefwksvr",
+        "$_dhfwk_lite_path/utils:distributedhardwareutils",
+      ]
+    }
+
+    # Immediate rootfs refresh for incremental board/qemu workflows (image
+    # repack regenerates rootfs from fs.yml sources anyway).
+    copy("dhfwk_lite_rootfs_libs_install") {
+      sources = [
+        "$root_out_dir/usr/lib/libdistributedhardwarefwksvr.so",
+        "$root_out_dir/usr/lib/libdistributedhardwareutils.so",
+      ]
+      outputs = [ "$root_out_dir/rootfs/usr/lib/{{source_file_part}}" ]
+      deps = [ ":dhfwk_lite_libs_install" ]
+    }
+
+    # contracts C3: /bin/dhfwk_daemon (+ immediate rootfs refresh; fs.yml
+    # packs $root_out_dir/bin into rootfs/bin on image repack).
+    copy("dhfwk_daemon_binary_install") {
+      sources = [ "$root_out_dir/bin/dhfwk_daemon" ]
+      outputs = [ "$root_out_dir/rootfs/bin/dhfwk_daemon" ]
+      deps = [
+        ":dhfwk_daemon",
+        ":dhfwk_lite_config",
+        ":dhfwk_lite_rootfs_libs_install",
+      ]
+    }
+  }
