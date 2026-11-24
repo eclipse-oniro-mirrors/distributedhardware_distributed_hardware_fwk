@@ -43,7 +43,8 @@ constexpr size_t BOUNDARY_LEN_65 = 65;
 constexpr size_t BOUNDARY_LEN_119 = 119;
 constexpr size_t BOUNDARY_LEN_120 = 120;
 constexpr size_t BOUNDARY_LEN_121 = 121;
-constexpr int32_t SNPRINTF_BUF_SIZE = 3;
+constexpr uint32_t NIBBLE_HIGH_SHIFT = 4;
+constexpr uint32_t NIBBLE_MASK = 0x0F;
 int g_total = 0;
 int g_failed = 0;
 
@@ -143,15 +144,10 @@ void RunFormatAndDigestChecks()
     const std::string abc = "abc";
     Sha256Digest(reinterpret_cast<const uint8_t *>(abc.data()), abc.size(), digest);
     std::string hexFromDigest;
+    const char hexChars[] = "0123456789abcdef";
     for (uint32_t i = 0; i < SHA256_DIGEST_LEN; ++i) {
-        char buf[SNPRINTF_BUF_SIZE] = {0};
-        int32_t snRet = std::snprintf(buf, sizeof(buf), "%02x", digest[i]);
-        if (snRet < 0) {
-            std::printf("[FAIL] snprintf returned %d at byte %u\n", snRet, i);
-            ++g_failed;
-            continue;
-        }
-        hexFromDigest += buf;
+        hexFromDigest += hexChars[(digest[i] >> NIBBLE_HIGH_SHIFT) & NIBBLE_MASK];
+        hexFromDigest += hexChars[digest[i] & NIBBLE_MASK];
     }
     Check("api.digest_matches_hex", hexFromDigest, Sha256Hex(abc));
 }

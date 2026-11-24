@@ -69,30 +69,23 @@ static void LogMsg(const char *msg)
     }
 }
 
-static inline void T22Check(bool cond, const char *msg, const char *file, int line)
+static void T22Check(bool cond, const char *msg)
 {
     g_checks++;
     if (!cond) {
         g_failures++;
-        char buf[256];
-        int32_t ret = snprintf(buf, sizeof(buf), "FAIL [%s:%d] %s", file, line, msg);
-        if (ret < 0) {
-            (void)ret;
-        }
-        LogMsg(buf);
+        std::string failMsg = "FAIL ";
+        failMsg += msg;
+        LogMsg(failMsg.c_str());
     } else {
-        char buf[256];
-        int32_t ret = snprintf(buf, sizeof(buf), "ok   %s", msg);
-        if (ret < 0) {
-            (void)ret;
-        }
-        LogMsg(buf);
+        std::string okMsg = "ok   ";
+        okMsg += msg;
+        LogMsg(okMsg.c_str());
     }
 }
 
-#define T22_CHECK(cond, msg) T22Check((cond), (msg), __FILE__, __LINE__)
-
 namespace {
+constexpr uint32_t LATE_FLAG_DELAY_SEC = 2;
 // Stub probe: returns false for the first `falseTimes` calls, then true.
 struct TimedProbe {
     uint32_t falseTimes;
@@ -131,10 +124,10 @@ void TestCoreImmediateReady()
     TimedProbe probe {0};
     StepCounter step;
     ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
-    T22_CHECK(r.ready, "core: immediate ready -> ready=true");
-    T22_CHECK(r.probes == 1, "core: immediate ready consumes exactly 1 probe");
-    T22_CHECK(step.calls == 0, "core: immediate ready performs no wait step");
-    T22_CHECK(probe.calls == 1, "core: stub probe called exactly once");
+    T22Check(r.ready, "core: immediate ready -> ready=true");
+    T22Check(r.probes == 1, "core: immediate ready consumes exactly 1 probe");
+    T22Check(step.calls == 0, "core: immediate ready performs no wait step");
+    T22Check(probe.calls == 1, "core: stub probe called exactly once");
 }
 
 void TestCoreReadyAfter3s()
@@ -143,9 +136,9 @@ void TestCoreReadyAfter3s()
     TimedProbe probe {3};
     StepCounter step;
     ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
-    T22_CHECK(r.ready, "core: ready after 3 failed probes -> ready=true");
-    T22_CHECK(r.probes == 4, "core: ready after 3s consumes 4 probes (t=0..3s)");
-    T22_CHECK(step.calls == 3, "core: ready after 3s performs 3 wait steps");
+    T22Check(r.ready, "core: ready after 3 failed probes -> ready=true");
+    T22Check(r.probes == 4, "core: ready after 3s consumes 4 probes (t=0..3s)");
+    T22Check(step.calls == 3, "core: ready after 3s performs 3 wait steps");
 }
 
 void TestCoreTimeout()
@@ -154,9 +147,9 @@ void TestCoreTimeout()
     TimedProbe probe {UINT32_MAX};
     StepCounter step;
     ReadyGateResult r = WaitForReadyGate(std::ref(probe), std::ref(step), 15);
-    T22_CHECK(!r.ready, "core: never ready -> ready=false (fail-open signal)");
-    T22_CHECK(r.probes == 15, "core: timeout exhausts all 15 probes");
-    T22_CHECK(step.calls == 15, "core: timeout performs 15 wait steps (cap ~15s)");
+    T22Check(!r.ready, "core: never ready -> ready=false (fail-open signal)");
+    T22Check(r.probes == 15, "core: timeout exhausts all 15 probes");
+    T22Check(step.calls == 15, "core: timeout performs 15 wait steps (cap ~15s)");
 }
 
 void TestCoreDegenerateArgs()
@@ -164,12 +157,12 @@ void TestCoreDegenerateArgs()
     LogMsg("-- core degenerate args: null probe / maxProbes=0 must not crash or hang");
     StepCounter step;
     ReadyGateResult r1 = WaitForReadyGate(nullptr, std::ref(step), 15);
-    T22_CHECK(!r1.ready && r1.probes == 0, "core: null probe -> not ready, 0 probes");
+    T22Check(!r1.ready && r1.probes == 0, "core: null probe -> not ready, 0 probes");
     TimedProbe probe {0};
     ReadyGateResult r2 = WaitForReadyGate(std::ref(probe), nullptr, 15);
-    T22_CHECK(!r2.ready && r2.probes == 0, "core: null waitStep -> not ready, 0 probes (no UB)");
+    T22Check(!r2.ready && r2.probes == 0, "core: null waitStep -> not ready, 0 probes (no UB)");
     ReadyGateResult r3 = WaitForReadyGate(std::ref(probe), std::ref(step), 0);
-    T22_CHECK(!r3.ready && r3.probes == 0, "core: maxProbes=0 -> not ready, 0 probes");
+    T22Check(!r3.ready && r3.probes == 0, "core: maxProbes=0 -> not ready, 0 probes");
 }
 
 void TestWrapperFlagPresent()
@@ -184,8 +177,8 @@ void TestWrapperFlagPresent()
     }
     ReadyGateResult r = WaitCameraHalReady(3, 1, path.c_str());
     time_t elapsed = time(nullptr) - t0;
-    T22_CHECK(r.ready && r.probes == 1, "wrapper: existing flag -> ready on first probe");
-    T22_CHECK(elapsed <= 1, "wrapper: no sleep when flag present");
+    T22Check(r.ready && r.probes == 1, "wrapper: existing flag -> ready on first probe");
+    T22Check(elapsed <= 1, "wrapper: no sleep when flag present");
     unlink(path.c_str());
 }
 
@@ -196,14 +189,14 @@ void TestWrapperFlagLate()
     unlink(path.c_str());
     pid_t pid = fork();
     if (pid == 0) {
-        sleep(2);
+        sleep(LATE_FLAG_DELAY_SEC);
         TouchFile(path);
         _exit(0);
     }
-    T22_CHECK(pid > 0, "wrapper: fork child for late-flag timing");
+    T22Check(pid > 0, "wrapper: fork child for late-flag timing");
     ReadyGateResult r = WaitCameraHalReady(10, 1, path.c_str());
-    T22_CHECK(r.ready, "wrapper: late-appearing flag -> ready=true");
-    T22_CHECK(r.probes >= 2 && r.probes <= 4, "wrapper: detected within probes 2..4 (~2s)");
+    T22Check(r.ready, "wrapper: late-appearing flag -> ready=true");
+    T22Check(r.probes >= 2 && r.probes <= 4, "wrapper: detected within probes 2..4 (~2s)");
     int status = 0;
     if (pid > 0) {
         waitpid(pid, &status, 0);
@@ -223,22 +216,22 @@ void TestWrapperTimeout()
     }
     ReadyGateResult r = WaitCameraHalReady(2, 1, path.c_str());
     time_t elapsed = time(nullptr) - t0;
-    T22_CHECK(!r.ready, "wrapper: absent flag -> not ready (fail-open)");
-    T22_CHECK(r.probes == 2, "wrapper: timeout=2/interval=1 -> 2 probes");
-    T22_CHECK(elapsed >= 1 && elapsed <= 4, "wrapper: wall time honors interval (~2s)");
+    T22Check(!r.ready, "wrapper: absent flag -> not ready (fail-open)");
+    T22Check(r.probes == 2, "wrapper: timeout=2/interval=1 -> 2 probes");
+    T22Check(elapsed >= 1 && elapsed <= 4, "wrapper: wall time honors interval (~2s)");
     ReadyGateResult rNull = WaitCameraHalReady(2, 1, nullptr);
-    T22_CHECK(!rNull.ready && rNull.probes == 0, "wrapper: null flagPath -> safe, 0 probes");
+    T22Check(!rNull.ready && rNull.probes == 0, "wrapper: null flagPath -> safe, 0 probes");
 }
 
 void TestProductionConstants()
 {
     LogMsg("-- production constants: cross-repo readiness contract pinning");
-    T22_CHECK(strcmp(CAMERA_HAL_READY_FLAG, "/dev/.camera_hal_inited") == 0,
+    T22Check(strcmp(CAMERA_HAL_READY_FLAG, "/dev/.camera_hal_inited") == 0,
         "flag path verbatim == camera_lite CAMERA_HAL_INIT_FLAG (camera_service.cpp:28 @af78fdc)");
-    T22_CHECK(CAMERA_HAL_READY_TIMEOUT_SEC == 15, "timeout cap = 15s (TASK-22 target)");
-    T22_CHECK(CAMERA_HAL_READY_INTERVAL_SEC == 1, "interval = 1s (EX2 cadence)");
+    T22Check(CAMERA_HAL_READY_TIMEOUT_SEC == 15, "timeout cap = 15s (TASK-22 target)");
+    T22Check(CAMERA_HAL_READY_INTERVAL_SEC == 1, "interval = 1s (EX2 cadence)");
     ReadyGateResult r = WaitCameraHalReady(0, 0, "/tmp/task22_nonexistent_flag_xyz");
-    T22_CHECK(!r.ready && r.probes >= 1, "wrapper: degenerate 0/0 args -> >=1 probe, no hang");
+    T22Check(!r.ready && r.probes >= 1, "wrapper: degenerate 0/0 args -> >=1 probe, no hang");
 }
 } // namespace
 
@@ -253,13 +246,9 @@ int main()
     TestWrapperFlagLate();
     TestWrapperTimeout();
     TestProductionConstants();
-    char buf[256];
-    int32_t ret = snprintf(buf, sizeof(buf),
-        "==== camera_hal_ready_gate_test %s (checks=%d failures=%d) ====",
-        g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
-    if (ret < 0) {
-        (void)ret;
-    }
-    LogMsg(buf);
+    std::string summary = "==== camera_hal_ready_gate_test ";
+    summary += (g_failures == 0 ? "PASS" : "FAIL");
+    summary += " (checks=" + std::to_string(g_checks) + " failures=" + std::to_string(g_failures) + ") ====";
+    LogMsg(summary.c_str());
     return g_failures == 0 ? 0 : 1;
 }

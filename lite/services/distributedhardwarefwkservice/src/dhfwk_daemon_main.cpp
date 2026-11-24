@@ -86,7 +86,7 @@ using namespace OHOS::DistributedHardware;
 //     no-op deleter, matching C1 "UnregisterStaticSink never destroys").
 #else
 /* Weak reference stub period (TASK-2): undefined weak reference at GLOBAL
- * scope, on purpose:
+ * scope, on purpose. Reasons below.
  * 1. Inside namespace OHOS::DistributedHardware it would collide with the
  *    frozen extern "C" IDistributedHardwareSink* GetSinkHardwareHandler()
  *    producer declared by idistributed_hardware_sink.h (same name/scope,
@@ -297,12 +297,10 @@ using namespace OHOS::DistributedHardware;
 
 int main()
 {
-    void (*prevSigTerm)(int) = signal(SIGTERM, SignalHandler);
-    if (prevSigTerm == SIG_ERR) {
+    if (signal(SIGTERM, SignalHandler) == SIG_ERR) {
         DHLOGE("dhfwk_daemon: signal(SIGTERM) failed");
     }
-    void (*prevSigInt)(int) = signal(SIGINT, SignalHandler);
-    if (prevSigInt == SIG_ERR) {
+    if (signal(SIGINT, SignalHandler) == SIG_ERR) {
         DHLOGE("dhfwk_daemon: signal(SIGINT) failed");
     }
 

@@ -62,8 +62,6 @@ void DHCommTool::UnInit()
     dhTransportPtr_->UnInit();
 }
 
-
-
 std::string DHCommTool::GetLocalFullCapsInfo(bool isSyncMeta)
 {
     DHLOGI("get local cap info start");
