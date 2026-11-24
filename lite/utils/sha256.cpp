@@ -55,6 +55,11 @@ constexpr uint32_t STATE_IDX_6 = 6;
 constexpr uint32_t STATE_IDX_7 = 7;
 constexpr uint32_t NIBBLE_HIGH_SHIFT = 4;
 constexpr uint32_t NIBBLE_MASK = 0x0F;
+constexpr uint32_t WORD_BITS = 32;
+constexpr uint32_t BYTE_IDX_0 = 0;
+constexpr uint32_t BYTE_IDX_1 = 1;
+constexpr uint32_t BYTE_IDX_2 = 2;
+constexpr uint32_t BYTE_IDX_3 = 3;
 
 /* FIPS 180-4 section 4.2.2: first 32 bits of the fractional parts of the
  * cube roots of the first 64 primes. */
@@ -80,7 +85,7 @@ constexpr uint32_t K[SCHEDULE_LEN] = {
 /* FIPS 180-4 section 4.1.2 functions. */
 inline uint32_t Rotr(uint32_t x, uint32_t n)
 {
-    return (x >> n) | (x << (STATE_WORDS * 4 - n));
+    return (x >> n) | (x << (WORD_BITS - n));
 }
 
 inline uint32_t Ch(uint32_t x, uint32_t y, uint32_t z)
@@ -116,18 +121,18 @@ inline uint32_t SmallSigma1(uint32_t x)
 /* Read a 32-bit big-endian word (FIPS 180-4 message schedule is big-endian). */
 inline uint32_t LoadBE32(const uint8_t *p)
 {
-    return (static_cast<uint32_t>(p[0]) << BIG_ENDIAN_OFFSET) |
-           (static_cast<uint32_t>(p[1]) << WORD_BIT_OFFSET_BYTE1) |
-           (static_cast<uint32_t>(p[2]) << BITS_PER_BYTE) |
-           static_cast<uint32_t>(p[3]);
+    return (static_cast<uint32_t>(p[BYTE_IDX_0]) << BIG_ENDIAN_OFFSET) |
+           (static_cast<uint32_t>(p[BYTE_IDX_1]) << WORD_BIT_OFFSET_BYTE1) |
+           (static_cast<uint32_t>(p[BYTE_IDX_2]) << BITS_PER_BYTE) |
+           static_cast<uint32_t>(p[BYTE_IDX_3]);
 }
 
 inline void StoreBE32(uint8_t *p, uint32_t v)
 {
-    p[0] = static_cast<uint8_t>(v >> BIG_ENDIAN_OFFSET);
-    p[1] = static_cast<uint8_t>(v >> WORD_BIT_OFFSET_BYTE1);
-    p[2] = static_cast<uint8_t>(v >> BITS_PER_BYTE);
-    p[3] = static_cast<uint8_t>(v);
+    p[BYTE_IDX_0] = static_cast<uint8_t>(v >> BIG_ENDIAN_OFFSET);
+    p[BYTE_IDX_1] = static_cast<uint8_t>(v >> WORD_BIT_OFFSET_BYTE1);
+    p[BYTE_IDX_2] = static_cast<uint8_t>(v >> BITS_PER_BYTE);
+    p[BYTE_IDX_3] = static_cast<uint8_t>(v);
 }
 
 /* FIPS 180-4 section 6.2.2: process one 512-bit block. */
