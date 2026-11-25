@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -26,7 +26,7 @@ namespace DistributedHardware {
 
 struct DHDescriptor {
     std::string id;
-    DHType dhType;
+    DHType dhType {DHType::UNKNOWN};
     std::string customParams;
     uint32_t firstCallingTokenId{0};
 };
