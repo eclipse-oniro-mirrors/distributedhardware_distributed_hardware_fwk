@@ -21,8 +21,7 @@
       "distributed_hardware_fwk_low_latency"
     ],
     "adapted_system_type": [
-      "standard",
-      "small"
+      "standard"
     ],
     "rom": "128KB",
     "ram": "6144KB",
@@ -69,73 +68,19 @@
       ]
     },
     "build": {
-      "conditions": {
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_control_center/test/fuzztest:fuzztest": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_control_center/test/unittest:AvTransControlCenterTest": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/av_receiver/test/unittest:receiver_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/av_receiver:distributed_av_receiver": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/av_sender/test/unittest:sender_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/av_sender:distributed_av_sender": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/filters/test:filter_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/plugin/test:plugin_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_handler/histreamer_ability_querier/test/unittest/common:histreamer_ability_querier_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/common/test:av_common_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/framework/filter/test:framework_filter_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/framework/pipeline/test:framework_pipeline_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/interfaces/inner_kits/test/demo:DistributedHardwareFwkKitDemo": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/interfaces/inner_kits/test/fuzztest:fuzztest": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/interfaces/inner_kits/test/unittest:kit_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/interfaces/inner_kits:libdhfwk_sdk": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/services/distributedhardwarefwkservice/test/fuzztest:fuzztest": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/services/distributedhardwarefwkservice/test/unittest:test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/services/test_example:dhfwk_demo_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/utils/test:utils_test": {
-          "os_level": "standard"
-        },
-        "//foundation/distributedhardware/distributed_hardware_fwk/utils:distributedhardwareutils": {
-          "os_level": "standard"
-        }
-      },
       "sub_component": [
-        "//foundation/distributedhardware/distributed_hardware_fwk:distributed_hardware_fwk"
+        "//foundation/distributedhardware/distributed_hardware_fwk/application:DHardware_UI",
+        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/av_receiver:distributed_av_receiver",
+        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_engine/av_sender:distributed_av_sender",
+        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/av_trans_handler/histreamer_ability_querier:histreamer_ability_querier",
+        "//foundation/distributedhardware/distributed_hardware_fwk/av_transport/framework:distributed_av_pipeline_fwk",
+        "//foundation/distributedhardware/distributed_hardware_fwk/interfaces/inner_kits:libdhfwk_sdk",
+        "//foundation/distributedhardware/distributed_hardware_fwk/interfaces/kits/napi:hardwaremanager",
+        "//foundation/distributedhardware/distributed_hardware_fwk/sa_profile:dhardware.cfg",
+        "//foundation/distributedhardware/distributed_hardware_fwk/sa_profile:dhfwk_sa_profile",
+        "//foundation/distributedhardware/distributed_hardware_fwk/services/distributedhardwarefwkservice:distributedhardwarefwksvr",
+        "//foundation/distributedhardware/distributed_hardware_fwk/utils:distributedhardwareutils",
+        "//foundation/distributedhardware/distributed_hardware_fwk/taihe:distributed_hardware_taihe"
       ],
       "inner_kits": [
         {
