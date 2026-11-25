@@ -1,0 +1,397 @@
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef OHOS_DISTRIBUTED_HARDWARE_COMPONENT_MANAGER_H
+#define OHOS_DISTRIBUTED_HARDWARE_COMPONENT_MANAGER_H
+
+#include <atomic>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <mutex>
+#include <future>
+#include <mutex>
+namespace std {
+using shared_mutex = mutex;
+}
+
+#include "dhfwk_single_instance.h"
+#include "component_monitor.h"
+#include "capability_info.h"
+#include "device_type.h"
+#include "dh_comm_tool.h"
+#include "dh_modem_context_ext.h"
+#include "dhardware_descriptor.h"
+#include "iauthorization_result_callback.h"
+#include "iget_dh_descriptors_callback.h"
+// NOTE (lite, T-C12): "idistributed_hardware.h" must NOT be included here —
+// its AV center include chain is standard-only (IDL build-time artifacts are
+// absent from the source tree). The types it used to provide transitively
+// (DHDescriptor/EnableStep, IHDSink/SourceStatusListener,
+// IGetDhDescriptorsCallback) come from their own zero-change contract
+// headers below (shim-resolvable includes).
+//
+// NOTE (lite, C1): "idistributed_hardware_sink.h" must NOT be included here
+// either — its frozen extern "C" GetSinkHardwareHandler() (sink instance
+// producer, IDistributedHardwareSink*) would collide with the C1 camera-side
+// C++ export std::shared_ptr<IHardwareHandler> GetSinkHardwareHandler() in
+// the daemon main TU (same name/scope, differing only in return type).
+// Forward declarations suffice: this header only uses pointers/shared_ptr.
+// Translation units that dereference sinks include the full header
+// themselves (component_manager.cpp).
+#include "idistributed_hardware_source.h"
+#include "ihardware_handler.h"
+#include "ihardware_status_listener.h"
+#include "impl_utils.h"
+#include "ipublisher_listener.h"
+#include "meta_capability_info.h"
+#include "task_board.h"
+#include "task_factory.h"
+#include "version_info.h"
+
+namespace OHOS {
+namespace DistributedHardware {
+// lite forward declarations (see the include notes above): sink interface and
+// sink state listener are only used via pointer/shared_ptr in this header;
+// BusinessSinkState is a scoped enum with fixed underlying type (forward
+// declaration matches the definition in idistributed_hardware_sink.h).
+class IDistributedHardwareSink;
+class DistributedHardwareSinkStateListener;
+enum class BusinessSinkState : uint32_t;
+using ActionResult = std::unordered_map<DHType, std::shared_future<int32_t>>;
+class ComponentManager {
+    FWK_DECLARE_SINGLE_INSTANCE_BASE(ComponentManager);
+
+public:
+    ComponentManager();
+    ~ComponentManager();
+
+public:
+    int32_t Init();
+    int32_t UnInit();
+    /**
+     * @brief Register a process-static sink hardware handler (DD-3, contracts C1).
+     *        The daemon registers the statically linked camera sink handler after
+     *        fwk Initialize(); InitCompSink() then reuses this registry instead of
+     *        the dlopen path (which is removed on lite). Signature frozen by C1.
+     *
+     * @param dhType hardware type of the sink (CAMERA on L1).
+     * @param handler statically linked hardware handler instance.
+     * @return 0 (DH_FWK_SUCCESS) on success.
+     */
+    int32_t RegisterStaticSink(DHType dhType, const std::shared_ptr<IHardwareHandler> &handler);
+    /**
+     * @brief Register a process-static sink hardware handler together with its
+     *        per-DHType sink instance producer result (SR-5 contracts §1/§2).
+     *        InitCompSink()/UninitCompSink() consume the per-type sink instance
+     *        from this registry; the duplicate registration is rejected.
+     *
+     * @param dhType hardware type of the sink (CAMERA/AUDIO on L1).
+     * @param handler statically linked hardware handler instance.
+     * @param sink statically linked sink instance for this dhType.
+     * @return 0 (DH_FWK_SUCCESS) on success, non-zero on duplicate/null/failure.
+     */
+    int32_t RegisterStaticSink(DHType dhType, const std::shared_ptr<IHardwareHandler> &handler,
+        const std::shared_ptr<IDistributedHardwareSink> &sink);
+    /**
+     * @brief Remove the static sink mapping for dhType (C1: mapping only, the
+     *        process-lifetime handler instance is NOT destroyed here).
+     */
+    int32_t Enable(const std::string &networkId, const std::string &uuid, const std::string &dhId,
+        const DHType dhType, bool isActive = false, const std::string &customParams = "");
+    int32_t Disable(const std::string &networkId, const std::string &uuid, const std::string &dhId,
+        const DHType dhType);
+    void UpdateBusinessState(const std::string &uuid, const std::string &dhId, BusinessState state);
+    BusinessState QueryBusinessState(const std::string &uuid, const std::string &dhId);
+    void DumpLoadedCompsource(std::set<DHType> &compSourceType);
+    void DumpLoadedCompsink(std::set<DHType> &compSinkType);
+    std::map<DHType, IDistributedHardwareSink*> GetDHSinkInstance();
+    IDistributedHardwareSource* GetDHSourceInstance(DHType dhType);
+    /**
+     * @brief find the task param and return it.
+     *        If the task param exist, get and remove from the cached task params,
+     *        save it at the second task param, then return true.
+     *        If the task param not exist, return false.
+     *
+     * @param taskKey the task param uuid and dhid pair.
+     * @param taskParam if the task param exist, save it.
+     * @return true if the task param exist, return true.
+     * @return false if the task param not exist, return false.
+     */
+    bool FetchNeedRefreshTask(const std::pair<std::string, std::string> &taskKey, TaskParam &taskParam);
+
+    int32_t CheckSinkConfigStart(const DHType dhType, bool &enableSink);
+    int32_t CheckDemandStart(const std::string &udid, const std::string &uuid, const DHType dhType, bool &enableSource);
+    int32_t UnregisterDHStatusListener(sptr<IHDSinkStatusListener> listener, int32_t callingUid, int32_t callingPid);
+    int32_t RegisterDHStatusListener(const std::string &networkId,
+        sptr<IHDSourceStatusListener> listener, int32_t callingUid, int32_t callingPid);
+    int32_t EnableSink(const DHDescriptor &dhDescriptor, int32_t callingUid, int32_t callingPid);
+    int32_t DisableSink(const DHDescriptor &dhDescriptor, int32_t callingUid, int32_t callingPid);
+    int32_t EnableSource(const std::string &networkId,
+        const DHDescriptor &dhDescriptor, int32_t callingUid, int32_t callingPid);
+    int32_t DisableSource(const std::string &networkId,
+        const DHDescriptor &dhDescriptor, int32_t callingUid, int32_t callingPid);
+    int32_t ForceDisableSink(const DHDescriptor &dhDescriptor);
+    int32_t ForceDisableSource(const std::string &networkId, const DHDescriptor &dhDescriptor);
+    int32_t EnableMetaSource(const std::string &networkId, const DHDescriptor &dhDescriptor,
+        std::shared_ptr<IDistributedModemExt> dhModemExt, IDistributedHardwareSource *&sourcePtr);
+    int32_t DisableMetaSource(const std::string &networkId, const DHDescriptor &dhDescriptor,
+        std::shared_ptr<IDistributedModemExt> dhModemExt, IDistributedHardwareSource *&sourcePtr);
+    void OnGetDescriptors(const std::string &realNetworkId, const std::vector<DHDescriptor> &descriptors);
+    void UpdateSinkBusinessState(const std::string &networkId, const std::string &dhId, BusinessSinkState state);
+    int32_t InitAVSyncSharedMemory();
+    void DeinitAVSyncSharedMemory();
+    int32_t GetDHIdByDHSubtype(const DHSubtype dhSubtype, std::string &networkId, std::string &dhId);
+    int32_t GetDHSubtypeByDHId(DHSubtype &dhSubtype, const std::string &networkId, const std::string &dhId);
+    void HandleIdleStateChange(const std::string &networkId, const std::string &dhId, const DHType dhType);
+    void HandleBusinessStateChange(const std::string &networkId, const std::string &dhId, const DHSubtype dhSubType,
+        const BusinessState state);
+    void NotifyBusinessStateChange(const DHSubtype dhSubType, const BusinessState state);
+    bool IsSourceEnabled();
+    bool IsSinkActiveEnabled();
+    bool IsRequestSyncData(const std::string &networkId);
+    void RegisterSyncDataRequest(const std::string &networkId);
+
+private:
+    enum class Action : int32_t {
+        START_SOURCE,
+        START_SINK,
+        STOP_SOURCE,
+        STOP_SINK
+    };
+
+    enum class EnableState : int32_t {
+        DISABLED,
+        ENABLED
+    };
+
+    struct SyncShareData {
+        volatile int lock;
+        uint64_t audio_current_pts;
+        uint64_t audio_update_clock;
+        float audio_speed;
+        uint64_t video_current_pts;
+        uint64_t video_update_clock;
+        float video_speed;
+        uint64_t sync_strategy;
+        bool reset;
+    };
+
+    enum class AVscene : uint32_t {
+        BROADCAST = 1,
+        VIDEOCALL = 2
+    };
+
+    struct DHStatusCtrlKey {
+        int32_t uid;
+        int32_t pid;
+
+        bool operator == (const DHStatusCtrlKey &other) const
+        {
+            return (uid == other.uid) && (pid == other.pid);
+        }
+
+        bool operator < (const DHStatusCtrlKey &other) const
+        {
+            if (uid < other.uid) {
+                return true;
+            } else if (uid > other.uid) {
+                return false;
+            }
+            return pid < other.pid;
+        }
+    };
+
+    struct DHStatusCtrl {
+        EnableState enableState;
+        DHStatusCtrl()
+        {
+            enableState = EnableState::DISABLED;
+        }
+    };
+
+    struct DHStatusEnableInfo {
+        int32_t refEnable;
+        std::map<DHStatusCtrlKey, DHStatusCtrl> dhStatusCtrl;
+        DHStatusEnableInfo()
+        {
+            refEnable = 0;
+        }
+    };
+
+    struct DHStatusSourceEnableInfoKey {
+        std::string networkId;
+        std::string dhId;
+        bool operator == (const DHStatusSourceEnableInfoKey &other) const
+        {
+            return (networkId == other.networkId) && (dhId == other.dhId);
+        }
+        bool operator < (const DHStatusSourceEnableInfoKey &other) const
+        {
+            if (networkId < other.networkId) {
+                return true;
+            } else if (networkId > other.networkId) {
+                return false;
+            }
+            return dhId < other.dhId;
+        }
+    };
+
+    struct DHSinkStatus {
+        int32_t refLoad;
+        std::map<std::string, DHStatusEnableInfo> enableInfos;  // key is dhid
+        std::map<DHStatusCtrlKey, sptr<IHDSinkStatusListener>> listeners;
+        DHSinkStatus()
+        {
+            refLoad = 0;
+        }
+    };
+
+    struct DHSourceStatus {
+        int32_t refLoad;
+        std::map<DHStatusSourceEnableInfoKey, DHStatusEnableInfo> enableInfos;
+        std::map<DHStatusCtrlKey, sptr<IHDSourceStatusListener>> listeners;
+        DHSourceStatus()
+        {
+            refLoad = 0;
+        }
+    };
+
+    DHType GetDHType(const std::string &uuid, const std::string &dhId) const;
+    int32_t InitCompSource(DHType dhType);
+    int32_t UninitCompSource(DHType dhType, bool keepSAMonitor = false);
+    int32_t InitCompSink(DHType dhType);
+    int32_t UninitCompSink(DHType dhType, bool keepSAMonitor = false);
+    int32_t ResolveSinkPtr(DHType dhType, IDistributedHardwareSink *&sinkPtr, bool &needReleaseDlopenSink);
+    void InitDHCommTool();
+    void UnInitDHCommTool();
+    int32_t StartSource(DHType dhType, ActionResult &sourceResult);
+    int32_t StopSource(DHType dhType, ActionResult &sourceResult);
+    int32_t StartSink(DHType dhType, ActionResult &sinkResult);
+    int32_t StartSinkAndWait(DHType dhType);
+    int32_t StopSink(DHType dhType, ActionResult &sinkResult);
+    bool WaitForResult(const Action &action, ActionResult result);
+    int32_t GetEnableParam(const std::string &networkId, const std::string &uuid, const std::string &dhId,
+        DHType dhType, EnableParam &param);
+    int32_t GetVersionFromVerMgr(const std::string &uuid, const DHType dhType, std::string &version, bool isSink);
+    int32_t GetVersionFromVerInfoMgr(const std::string &uuid, const DHType dhType, std::string &version, bool isSink);
+    int32_t GetVersion(const std::string &uuid, DHType dhType, std::string &version, bool isSink);
+    void UpdateVersionCache(const std::string &uuid, const VersionInfo &versionInfo);
+
+    void DoRecover(DHType dhType);
+    bool IsIdenticalAccount(const std::string &networkId);
+    int32_t RetryGetEnableParam(const std::string &networkId, const std::string &uuid,
+        const std::string &dhId, const DHType dhType, EnableParam &param);
+    int32_t GetEnableCapParam(const std::string &networkId, const std::string &uuid, DHType dhType, EnableParam &param,
+        std::shared_ptr<CapabilityInfo> capability);
+    int32_t GetEnableMetaParam(const std::string &networkId, const std::string &uuid, DHType dhType, EnableParam &param,
+        std::shared_ptr<MetaCapabilityInfo> metaCapPtr);
+    int32_t GetCapParam(const std::string &uuid, const std::string &dhId, std::shared_ptr<CapabilityInfo> &capability);
+    int32_t GetMetaParam(const std::string &uuid, const std::string &dhId,
+        std::shared_ptr<MetaCapabilityInfo> &metaCapPtr);
+    int32_t CheckSubtypeResource(const std::string &subtype, const std::string &networkId);
+    void AddTokenIdToSinkAttrs(const std::string &customParams, EnableParam &param);
+    int32_t CheckAudioConfigGate(const std::string &networkId, const DHDescriptor &dhDescriptor,
+        const std::string &role);
+
+    int32_t GetRemoteVerInfo(CompVersion &compVersion, const std::string &udid, const std::string &uuid, DHType dhType);
+    bool IsFeatureMatched(const std::vector<std::string> &sourceFeatureFilters,
+        const std::vector<std::string> &sinkSupportedFeatures);
+    int32_t EnableSinkInternal(const DHDescriptor &dhDescriptor,
+        int32_t callingUid, int32_t callingPid, sptr<IHDSinkStatusListener> &listener);
+    int32_t DisableSinkInternal(const DHDescriptor &dhDescriptor,
+        int32_t callingUid, int32_t callingPid, sptr<IHDSinkStatusListener> &listener);
+    int32_t EnableSourceInternal(const std::string &networkId, const DHDescriptor &dhDescriptor,
+        int32_t callingUid, int32_t callingPid, sptr<IHDSourceStatusListener> &listener);
+    int32_t DisableSourceInternal(const std::string &networkId, const DHDescriptor &dhDescriptor,
+        int32_t callingUid, int32_t callingPid, sptr<IHDSourceStatusListener> &listener);
+    int32_t ForceDisableSinkInternal(
+        const DHDescriptor &dhDescriptor, std::vector<sptr<IHDSinkStatusListener>> &listeners);
+    int32_t ForceDisableSourceInternal(const std::string &networkId,
+        const DHDescriptor &dhDescriptor, std::vector<sptr<IHDSourceStatusListener>> &listeners);
+    int32_t RealEnableSource(const std::string &networkId, const std::string &uuid, const DHDescriptor &dhDescriptor,
+        DHStatusCtrl &statusCtrl, DHStatusEnableInfo &enableInfo, DHSourceStatus &status, bool isActive,
+        const std::string &customParams = "");
+    int32_t RealDisableSource(const std::string &networkId, const std::string &uuid, const DHDescriptor &dhDescriptor,
+        DHStatusCtrl &statusCtrl, DHStatusEnableInfo &enableInfo, DHSourceStatus &status);
+    int32_t CheckEnableSourceParam(const std::string &networkId, const DHDescriptor &dhDescriptor);
+    bool CheckSourceRepeatRef(DHStatusCtrl &statusCtrl, DHStatusEnableInfo &enableInfo,
+        DHSourceStatus &status, const DHDescriptor &dhDescriptor, DHStatusCtrlKey ctrlKey);
+    int32_t EnableMetaSourceInternal(const std::string &networkId, const DHDescriptor &dhDescriptor,
+        DHStatusCtrl &statusCtrl, DHStatusEnableInfo &enableInfo, DHSourceStatus &status,
+        std::shared_ptr<IDistributedModemExt> dhModemExt, IDistributedHardwareSource *&sourcePtr);
+    int32_t DisableMetaSourceInternal(const std::string &networkId, const DHDescriptor &dhDescriptor,
+        DHStatusCtrl &statusCtrl, DHStatusEnableInfo &enableInfo, DHSourceStatus &status,
+        std::shared_ptr<IDistributedModemExt> dhModemExt, IDistributedHardwareSource *&sourcePtr);
+    void ResetSinkEnableStatus(DHType dhType, bool keepSAMonitor = false);
+    void ResetSourceEnableStatus(DHType dhType, bool keepSAMonitor = false);
+    void RecoverAutoEnableSink(DHType dhType);
+    void RecoverAutoEnableSource(DHType dhType);
+    void RecoverActiveEnableSink(DHType dhType);
+    void RecoverActiveEnableSource(DHType dhType);
+    void HandleSyncDataTimeout(const std::string &realNetworkId);
+private:
+    std::map<DHType, IDistributedHardwareSource*> compSource_;
+    std::shared_mutex compSourceMutex_;
+    std::map<DHType, IDistributedHardwareSink*> compSink_;
+    std::shared_mutex compSinkMutex_;
+    // DD-3 (contracts C1): process-static sink handler registry. Key = DHType.
+    // Created by RegisterStaticSink() from the daemon before any online event;
+    // read-only consumers = InitCompSink()/UninitCompSink(); entries are removed
+    // by UnregisterStaticSink() (mapping only) or live until process exit.
+    // Invariant: the CAMERA sink instance is unique for the process lifetime.
+    std::map<DHType, std::shared_ptr<IHardwareHandler>> staticSinkMap_;
+    // SR-5 (contracts §1/§2): per-DHType sink instance registered through the
+    // 3-arg RegisterStaticSink overload. Types registered through the legacy
+    // 2-arg overload (CAMERA) keep using the fwk-frozen global producer.
+    std::map<DHType, std::shared_ptr<IDistributedHardwareSink>> staticSinkInstanceMap_;
+    std::mutex staticSinkMutex_;
+    std::map<DHType, int32_t> compSrcSaId_;
+    std::map<DHType, int32_t> compSinkSaId_;
+    std::shared_ptr<ComponentMonitor> compMonitorPtr_ = nullptr;
+
+    std::atomic<bool> isUnInitTimeOut_;
+    // record the remote device business state, {{deviceUUID, dhId}, BusinessState}.
+    std::map<std::pair<std::string, std::string>, BusinessState> dhBizStates_;
+    std::mutex bizStateMtx_;
+    std::shared_ptr<DistributedHardwareStateListener> dhStateListener_;
+    std::shared_ptr<DistributedHardwareSinkStateListener> dhSinkStateListener_;
+    std::shared_ptr<DataSyncTriggerListener> dataSyncTriggerListener_;
+
+    std::shared_ptr<DHCommTool> dhCommToolPtr_;
+
+    // save those remote dh that need refresh by full capability, {{device networkId, dhId}, TaskParam}.
+    std::map<std::pair<std::string, std::string>, TaskParam> needRefreshTaskParams_;
+    std::mutex needRefreshTaskParamsMtx_;
+
+    // distributed hardware enable status maintenance.
+    std::map<DHType, DHSinkStatus> dhSinkStatus_;
+    std::mutex dhSinkStatusMtx_;
+    std::map<DHType, DHSourceStatus> dhSourceStatus_;
+    std::mutex dhSourceStatusMtx_;
+    std::map<std::string, std::pair<EnableStep, std::vector<sptr<IGetDhDescriptorsCallback>>>> syncDeviceInfoMap_;
+    std::mutex syncDeviceInfoMapMutex_;
+
+    WorkModeParam workModeParam_;
+    std::mutex workModeParamMtx_;
+
+    DHTopic dhTopic_ = DHTopic::TOPIC_MIN;
+    std::mutex dhTopicMtx_;
+    std::map<std::pair<DHType, std::string>, sptr<IAuthorizationResultCallback>> accessListenerMap_;
+    std::mutex accessListenerMutex_;
+};
+} // namespace DistributedHardware
+} // namespace OHOS
+#endif
