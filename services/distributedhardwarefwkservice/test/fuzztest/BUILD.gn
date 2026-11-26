@@ -16,6 +16,7 @@ group("fuzztest") {
 
   deps = [
     "accessmanager_fuzzer:fuzztest",
+    "accessmanagerone_fuzzer:fuzztest",
     "capabilityinfomanager_fuzzer:fuzztest",
     "capabilityinfomanagerone_fuzzer:fuzztest",
     "capabilityinfomanagertwo_fuzzer:fuzztest",

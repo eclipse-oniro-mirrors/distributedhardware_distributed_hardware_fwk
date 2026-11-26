@@ -15,6 +15,9 @@ group("fuzztest") {
   testonly = true
 
   deps = [
+    "accesslistenerproxy_fuzzer:fuzztest",
+    "authorizationresultcallbackstub_fuzzer:fuzztest",
+    "dhfwksamanager_fuzzer:fuzztest",
     "distributedhardwarefwkkit_fuzzer:fuzztest",
     "distributedhardwarefwkkitone_fuzzer:fuzztest",
     "distributedhardwarefwkkittwo_fuzzer:fuzztest",
