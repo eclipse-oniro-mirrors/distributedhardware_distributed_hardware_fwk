@@ -26,7 +26,7 @@
 namespace OHOS {
 namespace DistributedHardware {
 
-class FuzzPublisherListenerStub : public PublisherListenerStub {
+class FuzzPublisherListenerStub final : public PublisherListenerStub {
 public:
     void OnMessage(const DHTopic, const std::string &) override
     {
@@ -34,7 +34,7 @@ public:
     }
 };
 
-class FuzzAVTransControlCenterCallback : public AvTransControlCenterCallbackStub {
+class FuzzAVTransControlCenterCallback final : public AvTransControlCenterCallbackStub {
 public:
     ErrCode SetParameter(uint32_t, const std::string &) override
     {

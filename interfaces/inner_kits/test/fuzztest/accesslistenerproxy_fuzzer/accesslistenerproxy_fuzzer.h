@@ -26,7 +26,7 @@
 namespace OHOS {
 namespace DistributedHardware {
 
-class FuzzAccessListenerStub : public IRemoteStub<IAccessListener> {
+class FuzzAccessListenerStub final : public IRemoteStub<IAccessListener> {
 public:
     void OnRequestHardwareAccess(const std::string &, AuthDeviceInfo, const DHType,
         const std::string &) override

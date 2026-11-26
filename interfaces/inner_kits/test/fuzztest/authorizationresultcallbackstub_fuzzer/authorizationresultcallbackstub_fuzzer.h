@@ -24,7 +24,7 @@
 namespace OHOS {
 namespace DistributedHardware {
 
-class FuzzAuthorizationResultCallbackStub : public AuthorizationResultCallbackStub {
+class FuzzAuthorizationResultCallbackStub final : public AuthorizationResultCallbackStub {
 public:
     void OnAuthorizationResult(const std::string &, const std::string &) override
     {
